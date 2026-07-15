@@ -1,102 +1,98 @@
-# Migrated asset policy
+# 移植資産ポリシー
 
-## Purpose
+## 目的
 
-Local untracked files copied from another project may contain valuable tooling, but also stale assumptions, incompatible paths, unknown licenses, or secrets. They are not trusted until audited.
+別プロジェクトからコピーされたローカル未追跡ファイルには、有用なtoolingだけでなく、古い前提、互換性のないpath、不明なlicense、秘密情報が含まれる可能性がある。監査が完了するまで信頼済み資産として扱わない。
 
-## Audit output
+## 監査結果の記録
 
-Record the audit in `docs/reports/migrated-assets-audit.md`. Classify every candidate as:
+監査結果は`docs/reports/migrated-assets-audit.md`へ記録し、各候補を次のいずれかに分類する。
 
-- **Adopt** — relevant, safe, licensed, usable without substantive local changes;
-- **Adapt** — relevant and licensed, but requires explicit project-specific changes;
-- **Defer** — potentially useful, but provenance, license, compatibility, or need is unresolved;
-- **Reject** — irrelevant, duplicated, unsafe, incompatible, or not redistributable.
+- **Adopt** — 関連性、安全性、licenseを確認でき、実質的な変更なしで利用できる。
+- **Adapt** — 関連性とlicenseは確認できるが、明示的なプロジェクト固有修正が必要である。
+- **Defer** — 有用な可能性はあるが、出典、license、互換性、必要性のいずれかが未解決である。
+- **Reject** — 無関係、重複、不安全、非互換、または再配布不可である。
 
-Do not delete deferred or rejected local files without explicit instruction.
+明示的な指示なしにDeferまたはRejectしたローカルファイルを削除しない。
 
-## Required checks
+## 必須確認項目
 
-For every candidate:
+各候補について次を確認する。
 
-1. exact path and file type;
-2. purpose and expected consumer;
-3. source URL or repository;
-4. source revision, tag, or release;
-5. license and notice requirements;
-6. diff from upstream when identifiable;
-7. secrets, tokens, private URLs, identifiers, and absolute paths;
-8. references to another repository, command, skill, or directory;
-9. executable commands and local support;
-10. overlap with tracked files;
-11. immediate value to the one-week study.
+1. 正確なpathとfile type
+2. 目的と想定利用者
+3. source URLまたはrepository
+4. source revision、tag、release
+5. LICENSEとNOTICEの要件
+6. upstreamを特定できる場合の差分
+7. secret、token、private URL、個人識別情報、絶対path
+8. 別repository、command、Skill、directoryへの参照
+9. 実行commandとローカル環境での対応状況
+10. tracked fileとの重複
+11. 1週間の研究で直ちに利用する価値
 
-Do not stage before these checks are recorded.
+これらを記録する前にstageしない。
 
-## MathWorks or other upstream MATLAB skills
+## MathWorks等の上流MATLAB Skill
 
-A locally copied MATLAB skill may be official upstream material, but memory alone is not sufficient proof.
+ローカルにコピーされたMATLAB Skillが公式資産に見えても、記憶やcopyright表記だけで公式版と断定しない。
 
-When provenance and redistribution are verified:
+出典と再配布条件を確認できた場合:
 
-- preserve upstream structure where practical;
-- preserve required `LICENSE`, `NOTICE`, and attribution;
-- add `UPSTREAM.md` with source, revision, import date, local modifications, and license;
-- avoid editing upstream files;
-- keep upstream MATLAB guidance separate from project rules;
-- place local rules in `skills/teleop-delay-matlab/SKILL.md`.
+- 可能な範囲でupstream構造を維持する。
+- 必要な`LICENSE`、`NOTICE`、attributionを保持する。
+- source、revision、import日、local modification、licenseを記録した`UPSTREAM.md`を追加する。
+- upstream fileを原則として改変しない。
+- 上流の一般MATLAB guidanceと研究固有規則を分離する。
+- 研究固有規則は`skills/teleop-delay-matlab/SKILL.md`へ置く。
 
-Expected role split:
+出典または再配布条件を確認できない場合:
 
-```text
-skills/
-├── matlab/
-│   ├── SKILL.md
-│   ├── UPSTREAM.md
-│   └── required license or notice files
-└── teleop-delay-matlab/
-    └── SKILL.md
-```
+- 公式版と主張しない。
+- commitしない。
+- `Defer`とする。
+- 研究固有Skillを独立して維持する。
 
-If provenance or redistribution cannot be verified:
-
-- do not claim the files are official;
-- do not commit them;
-- classify as `Defer`;
-- retain the project-specific skill independently.
-
-The tracked placeholder under `skills/matlab/` must not be represented as upstream official content. Replace it only as part of verified adoption.
+現在の汎用MATLAB作業規則は内製の`skills/matlab-engineering/`であり、未検証の上流packageを通常routingへ含めない。
 
 ## `devkit.toml`
 
-Before adoption:
+採用前に次を確認する。
 
-- identify the exact tool and supported schema;
-- confirm the tool exists locally;
-- inspect actual help or official documentation;
-- confirm every command and path;
-- remove other-project references;
-- verify concrete value to this repository.
+- 対応するtoolとschema
+- toolがローカルに存在すること
+- 実際のhelpまたは公式文書
+- 全commandとpath
+- 別プロジェクト固有参照の有無
+- 本リポジトリでの具体的な価値
 
-If the tool or schema cannot be verified, classify it as `Defer`.
+Toolまたはschemaを確認できない場合は`Defer`とする。
 
 ## First-party Devkit Skills
 
-The user-authored `skills/devkit-*` directories are first-party assets, not third-party imports. Before staging them, check secrets, personal paths, cross-project references, command compatibility with the installed Devkit version, and script side effects. Preserve their structure and wording unless a safety or compatibility correction is necessary; record any such correction in the audit.
+ユーザーが作成した`skills/devkit-*`は第三者移植物ではなくfirst-party資産である。stage前に、secret、個人path、cross-project参照、導入済みDevkit versionとのcommand互換性、scriptの副作用を確認する。安全性または互換性の修正が必要な場合を除き、構造と内容を維持し、修正理由を監査報告へ記録する。
 
-## Reference-only local Skills
+Devkit CLIの通常利用とDevkit本体source保守を区別する。source保守用Skillやscriptは、必要なsource markerと明示的依頼がある場合だけ使用する。
 
-When the user explicitly requests cleanup after reference review, move rejected or reference-only local Skill groups to the named external archive rather than deleting them. Verify the inventory and file hashes before and after the move, create an archive SHA-256 manifest, and never stage the archive or its manifest.
+## 参照専用のローカルSkill
 
-## Staging rule
+参照後の整理をユーザーが明示的に依頼した場合、Rejectまたはreference-onlyとしたSkill群は削除せず、指定されたリポジトリ外archiveへ移動する。移動前後のinventoryとhashを照合し、archive内にSHA-256 manifestを作成する。archiveとmanifestを本リポジトリへstageしない。
 
-After audit:
+## Stage規則
 
-- stage only Adopt and approved Adapt outputs;
-- report remaining untracked files;
-- use `git diff --cached --name-status`;
-- verify no candidate was added by broad staging.
+監査後:
 
-## Public-repository rule
+- Adoptと承認済みAdaptだけをstageする。
+- 残る未追跡ファイルを明示する。
+- `git diff --cached --name-status`を確認する。
+- broad stagingで候補が誤って追加されていないことを確認する。
 
-No imported asset may expose credentials, private URLs, personal paths, non-public data, or third-party material without redistribution permission.
+## 公開repositoryの規則
+
+移植資産に次を含めてはならない。
+
+- credentialまたはtoken
+- private URL
+- 個人filesystem path
+- 非公開研究データ
+- 再配布許可のない第三者資産
