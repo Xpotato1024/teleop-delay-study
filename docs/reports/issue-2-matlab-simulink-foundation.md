@@ -90,6 +90,6 @@ integration test 4件を通過した。`run_project()`三形式、circle/Lissajo
 - Issue: #2 OPEN
 - branch: `codex/2-matlab-simulink-implementation`
 - draft PR: #4
-- 最終監査commit SHA: この修正commit完了後に更新
+- 最終監査fix commit SHA: `a4c5080`（full SHAはGit履歴とPR #4で確認可能）
 
 PR本文では`Refs #2`を維持する。`Closes #2`への変更、Ready化、merge、Issue closeは行わない。
