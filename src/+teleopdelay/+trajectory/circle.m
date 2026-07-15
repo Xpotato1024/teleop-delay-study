@@ -2,6 +2,13 @@ function trajectory = circle(time_s, parameters)
 % circle  円軌道の位置、速度、加速度を解析式で返す。
 
 validateattributes(time_s, {'numeric'}, {'column', 'real', 'finite'});
+validateattributes(parameters, {'struct'}, {'scalar'});
+validateattributes(parameters.amplitude, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+validateattributes(parameters.omega, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+if numel(time_s) < 2 || any(diff(time_s) <= 0)
+    error('teleopDelay:InvalidTimeVector', ...
+        'time_s must contain at least two strictly increasing samples.');
+end
 A = parameters.amplitude;
 omega = parameters.omega;
 position_m = [A * cos(omega * time_s), A * sin(omega * time_s)];

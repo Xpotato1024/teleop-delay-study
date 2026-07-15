@@ -3,6 +3,7 @@
 *.m~
 octave-workspace
 *.slxc
+*.slx.bak
 slprj/
 
 # Generated research artifacts

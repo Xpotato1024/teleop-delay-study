@@ -7,8 +7,10 @@ cleanup = onCleanup(@() close_models(paths));
 set_param(paths.systemModelName, "SimulationCommand", "update");
 simulationOutput = sim(simulationInput);
 loggedOutputs = simulationOutput.yout;
-command = loggedOutputs.getElement(1).Values;
-position = loggedOutputs.getElement(2).Values;
+elementNames = cellstr(loggedOutputs.getElementNames());
+teleopdelay.simulink.validate_logging_names(elementNames);
+command = loggedOutputs.getElement("command_xy_m").Values;
+position = loggedOutputs.getElement("position_xy_m").Values;
 simulation = struct( ...
     "time_s", command.Time, ...
     "command_xy_m", command.Data, ...

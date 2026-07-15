@@ -33,7 +33,7 @@ end
 assert(rejected, "整数stepにならないduration / dtを拒否しなければならない。");
 
 paths = teleopdelay.simulink.model_paths(testRoot);
-teleopdelay.simulink.build_models(paths, config);
+teleopdelay.simulink.validate_models(paths);
 assert(isfile(paths.plant));
 assert(isfile(paths.system));
 
