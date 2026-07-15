@@ -1,61 +1,63 @@
-# Migrated assets audit
+# 移植資産監査報告
 
-## Scope and method
+## 対象と方法
 
-This audit covers the local untracked candidates present before staging the author-approved documentation payload. The inventory was obtained with `git ls-files --others --exclude-standard`. The three payload files `CONTRIBUTING.md`, `docs/migrated-assets-policy.md`, and `skills/teleop-delay-matlab/SKILL.md` are documented separately and are not treated as migrated candidates.
+本監査は、承認済み文書payloadをstageする前に存在したローカル未追跡候補を対象とする。inventoryは`git ls-files --others --exclude-standard`で取得した。payloadから追加した`CONTRIBUTING.md`、`docs/migrated-assets-policy.md`、`skills/teleop-delay-matlab/SKILL.md`は移植候補に含めない。
 
-The audit checked purpose, source evidence, revision, license or notice evidence, upstream diff availability, secrets and paths, references to other projects, executable commands, overlap with the tracked repository, and value to the one-week study.
+各候補について、目的、出典、revision、LICENSE/NOTICE、upstream差分、secret・path、他project参照、実行command、tracked fileとの重複、1週間の研究での価値を確認した。
 
-## Decisions
+## 採否判断
 
-| Asset | Files | Decision | Evidence and reason | Staged path |
+| 資産 | file数 | 判断 | 根拠 | staged path |
 |---|---:|---|---|---|
-| `devkit.toml` | 1 | **Adopt** | The installed `devkit-cli v0.1.6` exists. `devkit --help`, `devkit encoding check README.md --brief`, `devkit tree --path . --brief`, and `devkit config init --path <temporary-file>` succeeded. The TOML uses the generated schema sections, contains no absolute project path, private URL, or credential, and is useful for repository encoding/tree checks and Japanese Git text. It is configuration, not third-party source code; no separate license notice is required. | `devkit.toml` |
-| `skills/devkit-*` | 26 | **Adopt / first-party** | User-authored Devkit operation contracts. `devkit-cli v0.1.6` version/help and representative commands were checked. Devkit source-maintenance paths such as `rust/`, `SKILLs/`, and `.github/workflows/release.yml` are intentional first-party references; they are not normal `teleop-delay-study` targets. Routing and guards separate CLI use from source maintenance. | `skills/devkit-*` |
-| bootstrap `skills/matlab/SKILL.md` | 1 | **Reject** | This was a bootstrap project-rules placeholder, not verified upstream material. It was deleted in this follow-up so the unverified `skills/matlab/` directory is no longer tracked. | Deleted |
-| `skills/matlab-agentic-toolkit` | 39 | **Reference-only / archived** | Read for MATLAB debugging, testing, review, product discovery, environment setup, manifests, references, and eval fixtures. The copied tree has no verified source revision, complete LICENSE/NOTICE set, or redistribution terms, so it was not adopted or copied. | `../teleop-delay-study-local-skills-archive-20260715/` |
-| `skills/empirical-prompt-tuning` | 1 | **Reject / archived** | Unrelated prompt-evaluation methodology with no immediate value to this study. | `../teleop-delay-study-local-skills-archive-20260715/` |
-| `skills/pdf-to-ai-readable` | 2 | **Reject / archived** | Generic PDF/OCR workflow unrelated to this bootstrap repository. | `../teleop-delay-study-local-skills-archive-20260715/` |
-| `skills/simulation-engineering-pdf-to-m` | 2 | **Reject / archived** | Separate lecture-project extraction workflow. | `../teleop-delay-study-local-skills-archive-20260715/` |
-| `skills/simulation-engineering-task01-report` | 2 | **Reject / archived** | Separate lecture-project report workflow. | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `devkit.toml` | 1 | **Adopt** | `devkit-cli v0.1.6`、`--help`、encoding、tree、config生成を確認した。絶対path、private URL、credentialを含まず、encoding/tree確認と日本語Git textに有用である。 | `devkit.toml` |
+| `skills/devkit-*` | 26 | **Adopt / first-party** | ユーザー作成のDevkit操作契約。v0.1.6の代表commandを確認した。`rust/`、`SKILLs/`、release workflow等の参照はDevkit本体保守用の意図的なfirst-party参照であり、通常CLI利用とはroutingとguardで分離した。 | `skills/devkit-*` |
+| bootstrap `skills/matlab/SKILL.md` | 1 | **Reject** | upstreamではなく、bootstrap時のproject規則placeholderだった。削除し、未検証の`skills/matlab/`を追跡対象外とした。 | 削除 |
+| `skills/matlab-agentic-toolkit` | 39 | **Reference-only / archived** | MATLAB debug、test、review、製品確認、環境確認等の設計参考として読んだ。source revision、完全なLICENSE/NOTICE、再配布条件を確認できないため採用しなかった。 | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `skills/empirical-prompt-tuning` | 1 | **Reject / archived** | 本研究に不要なprompt評価workflowである。 | 同上 |
+| `skills/pdf-to-ai-readable` | 2 | **Reject / archived** | bootstrapに不要な汎用PDF/OCR workflowである。 | 同上 |
+| `skills/simulation-engineering-pdf-to-m` | 2 | **Reject / archived** | 別の講義project用抽出workflowである。 | 同上 |
+| `skills/simulation-engineering-task01-report` | 2 | **Reject / archived** | 別の講義project用レポートworkflowである。 | 同上 |
 
-No candidate required **Adapt**. `skills/matlab-engineering/` is a new project-authored Skill, not a migrated asset. The project-specific `skills/teleop-delay-matlab/SKILL.md` remains a separate local contract.
+`Adapt`に分類した移植候補はない。`skills/matlab-engineering/`は新規内製Skillであり、移植資産ではない。`skills/teleop-delay-matlab/SKILL.md`は研究固有contractとして独立している。
 
-## MATLAB upstream decision
+## MATLAB上流資産の判断
 
-The bootstrap placeholder `skills/matlab/SKILL.md` was deleted. The MATLAB toolkit is reference-only and archived, not adopted as `skills/matlab/`, and no `skills/matlab/UPSTREAM.md` is added. The copied README and manifests state MathWorks copyright and MathWorks BSD-3-Clause, but they do not establish the exact upstream repository, revision, import date, complete license/NOTICE set, or redistribution terms for this copy. Public URLs appearing in the text point to MATLAB MCP/server or documentation resources, not an identifiable revision of this skill tree. No claim that the copied tree is verified official upstream is made.
+bootstrap placeholderの`skills/matlab/SKILL.md`は削除した。MATLAB Agentic Toolkit候補は参照専用としてrepository外へ退避し、`skills/matlab/`または`skills/matlab/UPSTREAM.md`は追加していない。
 
-No `skills/matlab/` directory is tracked. The author-approved project-specific rules live separately in `skills/teleop-delay-matlab/SKILL.md`.
+候補内にはMathWorks copyrightとBSD-3-Clauseの表記があったが、そのコピーの正確なsource repository、revision、import日、完全なLICENSE/NOTICE、再配布条件、upstream差分を確定できなかった。このため、検証済み公式upstreamとは主張しない。
 
-## Devkit source-maintenance boundary
+現在追跡する汎用MATLAB規則は内製の`skills/matlab-engineering/`、研究固有規則は`skills/teleop-delay-matlab/`である。
 
-The adopted Devkit Skills contain two deliberate roles:
+## Devkit source保守との境界
 
-- CLI-use Skills for this repository: tree exploration, encoding, inspect/edit/verify, Git drafts, documentation, metrics, and ordinary project bootstrap/configuration;
-- conditional Devkit-source-maintenance Skills: release maintenance and the Python Skill-sync fallback, which assume a Devkit source checkout.
+採用したDevkit Skillには次の2種類がある。
 
-The source-maintenance references are first-party and intentional, not unrelated-project contamination. They must not be applied directly to this repository's release or `skills/` bootstrap. `AGENTS.md` and `docs/development.md` now require the Devkit source markers before release maintenance. The project-bootstrap Skill makes `devkit bootstrap sync-skills` the first choice and documents the Python script only as an explicit `--repo-root <devkit-source-repo>` fallback.
+- 本リポジトリで通常使用するCLI Skill: tree、encoding、inspect/edit/verify、Git draft、文書、metrics、project bootstrap/config
+- Devkit本体source checkoutだけに使用する条件付き保守Skill: release保守とPython Skill同期fallback
 
-The sync script now refuses missing `SKILLs/` or `rust/`, refuses source/destination equality or nesting, and supports a no-write `--dry-run`. Its help states that matching destination Skill directories are replaced. The release checker now reports missing `.github/workflows/release.yml`, `rust/crates/devkit-cli/src/main.rs`, and `rust/crates/devkit-installer/src/main.rs` as explicit failures instead of raising `FileNotFoundError`. Root-relative script commands were corrected to the tracked paths under `skills/`.
+source保守参照はfirst-partyで意図的なものであり、無関係なproject混入ではない。ただし、本リポジトリ自身のreleaseまたは`skills/`bootstrapへ直接適用してはならない。`AGENTS.md`と`docs/development.md`では、Devkit source markerと明示的依頼を必須としている。
 
-## Final status after Skill adoption and archive
+同期scriptは`SKILLs/`または`rust/`不足、source/destinationの同一・包含関係を拒否し、`--dry-run`を備える。release checkerは必要な3 pathの不足を列挙し、`FileNotFoundError`のtracebackではなく非0 statusで終了する。誤っていたroot-relative commandはtracked pathへ修正した。
 
-On 2026-07-15, the eight `skills/devkit-*` groups (26 files) were adopted as first-party assets. Four inherited links to the source Devkit repository's unavailable `docs/design/` pages were adapted to this repository's `docs/development.md` or `CONTRIBUTING.md`; no workflow command or substantive rule was redesigned at that adoption stage. The project-authored `skills/matlab-engineering/` (three files) was added after the reference-only MATLAB review. The existing `skills/teleop-delay-matlab/SKILL.md` remains the study-specific contract. The later source-maintenance safety follow-up is recorded above and in the current PR.
+## Skill採用・退避後の状態
 
-The 39 MATLAB Agentic Toolkit files were moved, not deleted, to `../teleop-delay-study-local-skills-archive-20260715/skills/matlab-agentic-toolkit/` after review. The four rejected groups (seven files) were moved to the same archive under their original `skills/` paths. An archive SHA-256 manifest was generated and checked against the files after the move. Neither the archive nor its manifest is inside the repository or staged.
+2026-07-15に、8群26fileの`skills/devkit-*`をfirst-party資産として採用した。参照先が存在しなかった4 linkは、本リポジトリの`docs/development.md`または`CONTRIBUTING.md`へ修正した。その後、source保守用Skillと通常利用Skillのrouting・guardを追加した。
 
-The initial count of 73 refers to the historical audit inventory, not the final untracked count. The final tracked Skill structure is the one shown in `docs/reports/bootstrap-skeleton.md`; the archived groups are not tracked.
+参照専用MATLAB Toolkit 39fileとRejectした4群7fileは削除せず、`../teleop-delay-study-local-skills-archive-20260715/skills/`以下へ移動した。移動前後のSHA-256を照合し、archiveにmanifestを作成した。archiveとmanifestはrepository外でありstageしていない。
 
-## Security and cross-project scan
+初期73fileはhistorical inventoryであり、最終未追跡数ではない。最終tracked Skill構造は`docs/reports/bootstrap-skeleton.md`を正本とする。
 
-- No credential, token, private URL, or actual personal path was found in the candidate scan.
-- Generic username path placeholders in the MATLAB toolkit are examples, not this workstation's path.
-- The simulation-engineering candidates reference separate lecture-project program/report paths.
-- No candidate was staged by broad staging.
+## Security・cross-project確認
 
-## Complete untracked candidate inventory
+- credential、token、private URL、実際の個人pathは検出されなかった。
+- MATLAB Toolkit内のusername pathは例示であり、この端末のpathではなかった。
+- simulation-engineering候補は別講義projectのprogram/report pathを参照していた。
+- broad stagingによる候補の誤追加はなかった。
 
-The following 73 files were present in the initial audit inventory: tracked `devkit.toml` plus 72 untracked local candidates. This historical list is retained for traceability; final status is recorded below. Adopted Devkit files are tracked, and the remaining migrated groups were archived outside the repository.
+## 初期候補inventory
+
+次の73fileが初期監査対象だった。`devkit.toml`と採用したDevkit Skillは現在trackedであり、残りの移植群はrepository外へ退避済みである。
 
 - `devkit.toml`
 - `skills/devkit-doc-edit/SKILL.md`
