@@ -1,28 +1,28 @@
-# Architecture and model contract
+# 設計・モデル契約
 
-## 1. Modeling objective
+## 1. モデル化の目的
 
-The model isolates the relationship among packetized position commands, fixed transport delay, simple prediction, and a first-order robot response. Detailed robot kinematics and human behavior are intentionally omitted so that the effect of delay and compensation can be interpreted.
+本モデルでは、packet化された位置指令、固定通信遅延、単純な予測補償、一次遅れのロボット応答の関係を分離して扱う。遅延と補償の影響を解釈しやすくするため、詳細なロボット運動学と人間の挙動は意図的に捨象する。
 
-The implementation must not silently add packet loss, jitter, feedback control, joint-space dynamics, saturation, or workspace constraints.
+packet loss、jitter、feedback制御、関節空間動力学、飽和、workspace制約を暗黙に追加してはならない。
 
-## 2. System boundary
+## 2. システム境界
 
 ```mermaid
 flowchart LR
-    R[Continuous target trajectory r(t)]
-    S[Sender sampling at t_k]
-    P[Packet: t_k, r_k, v_k]
-    D[Fixed transport delay L]
-    A[Latest available packet]
-    M{Command method}
-    Z[Zero-order hold]
-    C[Constant-velocity prediction]
-    U[Applied command u_m,L(t)]
-    G[First-order plant]
-    X[Plant output x_m,L(t)]
-    B[Method-specific zero-delay baseline x_m,0(t)]
-    E[Metrics]
+    R[連続目標軌道 r(t)]
+    S[送信側sampling t_k]
+    P[packet: t_k, r_k, v_k]
+    D[固定通信遅延 L]
+    A[利用可能な最新packet]
+    M{指令再構成方式}
+    Z[ゼロ次ホールド]
+    C[定速度予測]
+    U[適用指令 u_m,L(t)]
+    G[一次遅れplant]
+    X[plant出力 x_m,L(t)]
+    B[方式固有のゼロ遅延基準 x_m,0(t)]
+    E[評価指標]
 
     R --> S --> P --> D --> A --> M
     M --> Z --> U
@@ -32,176 +32,176 @@ flowchart LR
     B --> E
 ```
 
-## 3. Signals and planned data contracts
+## 3. 信号と予定データ契約
 
-All positions and velocities are two-dimensional Cartesian quantities.
+位置と速度はすべて2次元直交座標量とする。
 
-| Symbol | Meaning | Planned MATLAB representation |
+| 記号 | 意味 | MATLAB表現 |
 |---|---|---|
-| \(t\) | integration time | `N x 1 double`, seconds |
-| \(\mathbf r(t)\) | continuous target position | `N x 2 double`, metres |
-| \(\dot{\mathbf r}(t)\) | target velocity | `N x 2 double`, metres/second |
-| \(t_k\) | sender sample time | scalar or `K x 1 double`, seconds |
-| \(\mathbf r_k\) | sampled position | `K x 2 double` |
-| \(\mathbf v_k\) | sampled velocity | `K x 2 double` |
-| \(L\) | fixed one-way transport delay | scalar, seconds |
-| \(\mathbf u_{m,L}(t)\) | reconstructed command | `N x 2 double` |
-| \(\mathbf x_{m,L}(t)\) | plant output | `N x 2 double` |
-| \(T\) | first-order time constant | positive scalar, seconds |
+| \(t\) | 積分時刻 | `N x 1 double`、s |
+| \(\mathbf r(t)\) | 連続目標位置 | `N x 2 double`、m |
+| \(\dot{\mathbf r}(t)\) | 目標速度 | `N x 2 double`、m/s |
+| \(t_k\) | 送信sampling時刻 | scalarまたは`K x 1 double`、s |
+| \(\mathbf r_k\) | sampling位置 | `K x 2 double` |
+| \(\mathbf v_k\) | sampling速度 | `K x 2 double` |
+| \(L\) | 固定片道通信遅延 | scalar、s |
+| \(\mathbf u_{m,L}(t)\) | 再構成指令 | `N x 2 double` |
+| \(\mathbf x_{m,L}(t)\) | plant出力 | `N x 2 double` |
+| \(T\) | 一次遅れ時定数 | 正のscalar、s |
 
-Rows represent time samples; columns represent `x` and `y`. Implementations must assert this orientation and must not accept both `2 x N` and `N x 2` implicitly.
+行は時刻sample、列は`x`、`y`を表す。実装はこの向きを検証し、`2 x N`と`N x 2`を暗黙に両方受理しない。
 
-## 4. Packet availability
+## 4. packetの利用可能条件
 
-Sender samples occur at
-
-\[
-t_k = k h_s,
-\]
-
-where \(h_s\) is the sample period. A packet sent at \(t_k\) becomes available at \(t_k + L\).
-
-At simulation time \(t\), the receiver uses the latest packet satisfying
+送信側のsampling時刻を
 
 \[
-t_k + L \le t.
+t_k = k h_s
 \]
 
-Boundary behavior at exact arrival times must be unit-tested.
+とする。\(h_s\)はsampling周期であり、\(t_k\)に送信したpacketは\(t_k+L\)で利用可能になる。
 
-## 5. Reconstruction methods
-
-### 5.1 Zero-order hold
+時刻\(t\)で受信側が用いるのは、
 
 \[
-\mathbf u_{\mathrm{ZOH},L}(t)=\mathbf r(t_k).
+t_k+L\leq t
 \]
 
-### 5.2 Constant-velocity dead reckoning
+を満たす最新packetである。到着時刻と完全に一致する境界挙動をunit testで固定する。
+
+## 5. 指令再構成方式
+
+### 5.1 ゼロ次ホールド
+
+\[
+\mathbf u_{\mathrm{ZOH},L}(t)=\mathbf r(t_k)
+\]
+
+### 5.2 定速度デッドレコニング
 
 \[
 \mathbf u_{\mathrm{CV},L}(t)
 =
-\mathbf r(t_k)
-+
-(t-t_k)\dot{\mathbf r}(t_k).
+\mathbf r(t_k)+(t-t_k)\dot{\mathbf r}(t_k)
 \]
 
-The extrapolation age is the current time minus the packet timestamp. It includes transport delay and the time since the latest received sample. Using only nominal delay \(L\) is a different contract and must not be substituted silently.
+外挿時間は現在時刻からpacket timestampを引いた値である。通信遅延だけでなく、最新packetを受信してからの経過時間も含む。名目遅延\(L\)だけを使用する方式へ暗黙に置き換えない。
 
-This method is a first-order Taylor extrapolation, not a Smith predictor.
+本方式は一次Taylor外挿であり、Smith predictorではない。
 
-## 6. Plant model
+## 6. plantモデル
 
-Each Cartesian axis uses the same independent first-order response:
+各直交軸に同一の独立した一次遅れ応答を適用する。
 
 \[
-T\dot{\mathbf x}(t)+\mathbf x(t)=\mathbf u(t),
+T\dot{\mathbf x}(t)+\mathbf x(t)=\mathbf u(t)
 \]
 
-or
+すなわち、
 
 \[
-\dot{\mathbf x}(t)=\frac{\mathbf u(t)-\mathbf x(t)}{T}.
+\dot{\mathbf x}(t)=\frac{\mathbf u(t)-\mathbf x(t)}{T}
 \]
 
-The core implementation should not require Simulink.
+とする。中心実装はSimulinkを必須としない。
 
-## 7. Reference systems and metrics
+## 7. 参照系と評価指標
 
-ZOH and CV behave differently between samples even at zero transport delay. Therefore two questions and two reference policies are kept separate.
+ZOHとCVは、通信遅延がゼロでもsample間の挙動が異なる。このため、総追従性能と通信遅延だけの影響を別の参照系で評価する。
 
-### 7.1 Task-tracking error
+### 7.1 総追従誤差
 
-For direct method comparison under the same task:
+同一課題における方式間比較には、
 
 \[
 E_{\mathrm{track},m}(L)
 =
 \frac{1}{A}
 \sqrt{\frac{1}{N}\sum_{i=1}^{N}
-\left\|\mathbf r_i-\mathbf x_{m,L,i}\right\|^2}.
+\left\|\mathbf r_i-\mathbf x_{m,L,i}\right\|^2}
 \]
 
-This answers which method tracks the continuous target better.
+を用いる。連続目標軌道へどの方式が良く追従するかを表す。
 
-### 7.2 Delay-induced error
+### 7.2 通信遅延起因誤差
 
-For each method separately, compare delayed and zero-delay runs with identical sampling and reconstruction:
+方式ごとに、同じsampling・再構成を用いた遅延ありとゼロ遅延の出力を比較する。
 
 \[
 E_{\mathrm{delay},m}(L)
 =
 \frac{1}{A}
 \sqrt{\frac{1}{N}\sum_{i=1}^{N}
-\left\|\mathbf x_{m,L,i}-\mathbf x_{m,0,i}\right\|^2}.
+\left\|\mathbf x_{m,L,i}-\mathbf x_{m,0,i}\right\|^2}
 \]
 
-This isolates transport delay without conflating it with each method's intrinsic sample reconstruction.
+これにより、方式固有のsample間再構成誤差と通信遅延の影響を混同しない。
 
-### 7.3 Improvement
+### 7.3 改善率
 
-The principal method-improvement ratio is based on task error:
+主たる方式改善率は総追従誤差から、
 
 \[
 R_{\mathrm{track}}(L)
 =
 1-\frac{E_{\mathrm{track,CV}}(L)}
-        {E_{\mathrm{track,ZOH}}(L)}.
+        {E_{\mathrm{track,ZOH}}(L)}
 \]
 
-A delay-penalty ratio may also be reported, but zero denominators must be guarded explicitly.
+とする。通信遅延penaltyの比も補助的に示せるが、分母がゼロとなる場合を明示的にguardする。
 
-Maximum Euclidean position error is a secondary metric. Phase lag is optional.
+最大Euclidean位置誤差を副指標とする。位相遅れは任意の診断指標とする。
 
-## 8. Evaluation window and initialization
+## 8. 評価区間と初期化
 
-Startup transients and absent packet history must not contaminate the measured interval.
+起動過渡とpacket履歴不足を評価区間へ混入させない。
 
-Planned policy:
+予定方針:
 
-- deterministic periodic trajectories: simulate a warm-up interval and exclude it from metrics;
-- warm-up duration is at least `max(2*T, L + h_s)` and may be increased after convergence checks;
-- point-to-point random trajectories: hold the initial point before motion begins;
-- initial plant state and receiver history are recorded in configuration.
+- 決定論的周期軌道ではwarm-up区間を計算し、評価から除外する。
+- warm-upは少なくとも`max(2*T, L + h_s)`とし、収束確認後に延長できる。
+- 通過点間の乱数軌道では、運動開始前に初期点を保持する。
+- plant初期状態と受信履歴を設定へ記録する。
 
-The exact warm-up rule is a P0 design gate before metric implementation.
+厳密なwarm-up規則は、評価指標実装前に確定するP0設計gateとする。
 
-## 9. Deterministic trajectories
+## 9. 決定論的軌道
 
-P0 trajectories:
+P0軌道は次の2種類とする。
 
-1. Circle
+1. 円軌道
+
    \[
    r_x=A\cos(\omega t),\quad r_y=A\sin(\omega t)
    \]
 
-2. Lissajous 1:2
+2. 1:2 Lissajous軌道
+
    \[
    r_x=A\sin(\omega t),\quad r_y=A\sin(2\omega t)
    \]
 
-Generators provide position and analytic velocity. Analytic acceleration should also be available for interpretation and tests.
+generatorは位置と解析速度を返す。解釈とテストに使用する解析加速度も取得可能にする。
 
-## 10. Dimensionless interpretation
+## 10. 無次元量による解釈
 
-For periodic motion, the primary dimensionless delay is
-
-\[
-\mu=\omega L.
-\]
-
-Plant dynamics introduce \(\omega T\), while packetization introduces \(\omega h_s\). Collapse by \(\mu\) alone is a hypothesis, not an assumption.
-
-Taylor expansion suggests a constant-velocity residual proportional to
+周期運動の主要な無次元遅延を、
 
 \[
-\frac{L^2}{2}\ddot{\mathbf r},
+\mu=\omega L
 \]
 
-but the packet-age contract means practical residual also depends on sample timing.
+とする。plant動特性は\(\omega T\)、packet化は\(\omega h_s\)を導入するため、\(\mu\)だけで結果がcollapseすることは仮説であり前提ではない。
 
-## 11. Planned module map
+Taylor展開から、定速度予測の残差は概ね、
+
+\[
+\frac{L^2}{2}\ddot{\mathbf r}
+\]
+
+に比例すると予想される。ただし、実際のpacket ageはsampling timingにも依存する。
+
+## 11. 予定module構成
 
 ```text
 src/
@@ -217,17 +217,17 @@ src/
 └── plot_report_figures.m
 ```
 
-This is a planned boundary, not a requirement to create all files in one PR. Avoid premature fragmentation.
+これは予定境界であり、一つのPRで全ファイルを作成する要求ではない。早すぎる細分化を避ける。
 
-## 12. Open design gates
+## 12. 未確定の設計gate
 
-Before dependent implementation, fix:
+依存する実装へ進む前に、次を確定する。
 
-- exact warm-up and evaluation-window policy;
-- final default values and sweep ranges;
-- numerical integrator and convergence threshold;
-- normalization amplitude for non-periodic trajectories;
-- result schema and file format;
-- minimum-jerk random-trajectory contract.
+- warm-upと評価区間の厳密な規則
+- default値とsweep範囲
+- 数値積分法と収束判定threshold
+- 非周期軌道の正規化振幅
+- 結果schemaと保存形式
+- 最小ジャーク乱数軌道の契約
 
-Record each decision in `research/log.md`.
+各判断を`research/log.md`へ追記する。
