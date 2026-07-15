@@ -1,0 +1,15 @@
+# MATLAB / Octave
+*.asv
+*.m~
+octave-workspace
+
+# Generated research artifacts
+results/*
+!results/.gitkeep
+
+# Devkit local metrics
+.devkit-metrics.jsonl
+
+# Operating-system files
+.DS_Store
+Thumbs.db
