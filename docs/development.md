@@ -75,7 +75,20 @@ Core expectations:
 - no hidden toolbox dependency;
 - no global warning or error suppression.
 
-## 6. Validation levels
+## 6. Skill routing and evolution
+
+For MATLAB work, read the generic contract first, then the study contract:
+
+1. `skills/matlab-engineering/SKILL.md`;
+2. `skills/teleop-delay-matlab/SKILL.md`;
+3. `docs/architecture.md`;
+4. the target code and tests.
+
+Update `matlab-engineering` in the same PR when a failure, verified command, or repeated workflow generalizes to other MATLAB projects. Keep communication-delay research rules in `teleop-delay-matlab`, one-off details in code comments or the PR report, research decisions in `research/log.md`, and evidence plus validation in `skills/matlab-engineering/CHANGELOG.md`. Do not promote a single local incident or duplicate an existing rule; keep the Skill concise and rerun affected checks.
+
+For Devkit work, read only the task-matched first-party Skill: tree exploration, encoding hygiene, inspect/edit/verify, Git drafts, documentation, metrics, project bootstrap, or release maintenance.
+
+## 7. Validation levels
 
 ### Documentation-only PR
 
@@ -118,7 +131,7 @@ Also:
 - generate plots from saved results;
 - report runtime and failed cases.
 
-## 7. Results and figures
+## 8. Results and figures
 
 `results/` contains generated intermediate data, run manifests, diagnostics, and tables. It is ignored except for its placeholder.
 
@@ -126,7 +139,7 @@ Also:
 
 Do not manually alter plotted values or replace generated figures with visually similar files.
 
-## 8. Research log
+## 9. Research log
 
 Append a dated entry whenever any of the following changes:
 
@@ -140,7 +153,7 @@ Append a dated entry whenever any of the following changes:
 
 Do not rewrite earlier entries.
 
-## 9. Failure handling
+## 10. Failure handling
 
 When a command fails:
 
@@ -151,7 +164,7 @@ When a command fails:
 5. rerun the failed and relevant regression checks;
 6. record unresolved failures in the PR.
 
-## 10. Migrated assets
+## 11. Migrated assets
 
 Follow `docs/migrated-assets-policy.md` before staging imported local files. Audit results belong in `docs/reports/migrated-assets-audit.md`.
 

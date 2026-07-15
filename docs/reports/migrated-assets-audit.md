@@ -11,21 +11,29 @@ The audit checked purpose, source evidence, revision, license or notice evidence
 | Asset | Files | Decision | Evidence and reason | Staged path |
 |---|---:|---|---|---|
 | `devkit.toml` | 1 | **Adopt** | The installed `devkit-cli v0.1.6` exists. `devkit --help`, `devkit encoding check README.md --brief`, `devkit tree --path . --brief`, and `devkit config init --path <temporary-file>` succeeded. The TOML uses the generated schema sections, contains no absolute project path, private URL, or credential, and is useful for repository encoding/tree checks and Japanese Git text. It is configuration, not third-party source code; no separate license notice is required. | `devkit.toml` |
-| `skills/devkit-*` | 26 | **Defer** | Potentially useful workflow skills, but no source URL, revision, license, NOTICE, or independently identifiable upstream diff was found. They are not required by the MATLAB skeleton or runtime. | Not staged; retained locally |
+| `skills/devkit-*` | 26 | **Adopt / first-party** | User-authored Devkit operation contracts. `devkit-cli v0.1.6` version/help and representative commands were checked; scans found no token, credential, private URL, personal absolute path, or unrelated project reference. No substantive rewrite was made. | `skills/devkit-*` |
 | bootstrap `skills/matlab/SKILL.md` | 1 | **Reject** | This was a bootstrap project-rules placeholder, not verified upstream material. It was deleted in this follow-up so the unverified `skills/matlab/` directory is no longer tracked. | Deleted |
-| `skills/matlab-agentic-toolkit` | 39 | **Defer** | Files contain MathWorks copyright and `MathWorks BSD-3-Clause` claims, but the copied tree has no source URL for the skill package, revision, LICENSE/NOTICE, or independent Git metadata. The local Git context resolves to this repository, so an upstream diff cannot be established. The text includes setup scripts and external installer/server references. Officiality and redistribution terms therefore remain unverified. | Not staged; retained locally |
-| `skills/empirical-prompt-tuning` | 1 | **Reject** | Unrelated prompt-evaluation methodology, with no verified provenance or redistribution terms and no immediate value to the one-week simulation repository. | Not staged; retained locally |
-| `skills/pdf-to-ai-readable` | 2 | **Reject** | Generic PDF/OCR workflow unrelated to this repository's bootstrap deliverable; provenance and redistribution terms are not established. | Not staged; retained locally |
-| `skills/simulation-engineering-pdf-to-m` | 2 | **Reject** | Explicitly targets a separate lecture project program path and would introduce unrelated code-extraction workflow. Provenance and redistribution terms are not established. | Not staged; retained locally |
-| `skills/simulation-engineering-task01-report` | 2 | **Reject** | Explicitly targets a separate lecture project report path and is outside this repository's study scope. Provenance and redistribution terms are not established. | Not staged; retained locally |
+| `skills/matlab-agentic-toolkit` | 39 | **Reference-only / archived** | Read for MATLAB debugging, testing, review, product discovery, environment setup, manifests, references, and eval fixtures. The copied tree has no verified source revision, complete LICENSE/NOTICE set, or redistribution terms, so it was not adopted or copied. | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `skills/empirical-prompt-tuning` | 1 | **Reject / archived** | Unrelated prompt-evaluation methodology with no immediate value to this study. | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `skills/pdf-to-ai-readable` | 2 | **Reject / archived** | Generic PDF/OCR workflow unrelated to this bootstrap repository. | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `skills/simulation-engineering-pdf-to-m` | 2 | **Reject / archived** | Separate lecture-project extraction workflow. | `../teleop-delay-study-local-skills-archive-20260715/` |
+| `skills/simulation-engineering-task01-report` | 2 | **Reject / archived** | Separate lecture-project report workflow. | `../teleop-delay-study-local-skills-archive-20260715/` |
 
-No candidate required **Adapt**. The project-specific `skills/teleop-delay-matlab/SKILL.md` was supplied by the author in the documentation payload and is added as a local project contract, not merged with the unverified MATLAB toolkit.
+No candidate required **Adapt**. `skills/matlab-engineering/` is a new project-authored Skill, not a migrated asset. The project-specific `skills/teleop-delay-matlab/SKILL.md` remains a separate local contract.
 
 ## MATLAB upstream decision
 
-The bootstrap placeholder `skills/matlab/SKILL.md` was deleted. The untracked MATLAB toolkit is still not adopted as `skills/matlab/`, and no `skills/matlab/UPSTREAM.md` is added. The copied README and manifests state MathWorks copyright and MathWorks BSD-3-Clause, but they do not establish the exact upstream repository, revision, import date, complete license/NOTICE set, or redistribution terms for this copy. Public URLs appearing in the text point to MATLAB MCP/server or documentation resources, not an identifiable revision of this skill tree. No claim that the copied tree is verified official upstream is made.
+The bootstrap placeholder `skills/matlab/SKILL.md` was deleted. The MATLAB toolkit is reference-only and archived, not adopted as `skills/matlab/`, and no `skills/matlab/UPSTREAM.md` is added. The copied README and manifests state MathWorks copyright and MathWorks BSD-3-Clause, but they do not establish the exact upstream repository, revision, import date, complete license/NOTICE set, or redistribution terms for this copy. Public URLs appearing in the text point to MATLAB MCP/server or documentation resources, not an identifiable revision of this skill tree. No claim that the copied tree is verified official upstream is made.
 
 No `skills/matlab/` directory is tracked. The author-approved project-specific rules live separately in `skills/teleop-delay-matlab/SKILL.md`.
+
+## Final status after Skill adoption and archive
+
+On 2026-07-15, the eight `skills/devkit-*` groups (26 files) were adopted as first-party assets. Four inherited links to the source Devkit repository's unavailable `docs/design/` pages were adapted to this repository's `docs/development.md` or `CONTRIBUTING.md`; no workflow command or substantive rule was redesigned. The project-authored `skills/matlab-engineering/` (three files) was added after the reference-only MATLAB review. The existing `skills/teleop-delay-matlab/SKILL.md` remains the study-specific contract.
+
+The 39 MATLAB Agentic Toolkit files were moved, not deleted, to `../teleop-delay-study-local-skills-archive-20260715/skills/matlab-agentic-toolkit/` after review. The four rejected groups (seven files) were moved to the same archive under their original `skills/` paths. An archive SHA-256 manifest was generated and checked against the files after the move. Neither the archive nor its manifest is inside the repository or staged.
+
+The initial count of 73 refers to the historical audit inventory, not the final untracked count. The final tracked Skill structure is the one shown in `docs/reports/bootstrap-skeleton.md`; the archived groups are not tracked.
 
 ## Security and cross-project scan
 
@@ -36,7 +44,7 @@ No `skills/matlab/` directory is tracked. The author-approved project-specific r
 
 ## Complete untracked candidate inventory
 
-The following 73 files were present as migrated candidates before staging. The adopted `devkit.toml` was staged, and the bootstrap placeholder was deleted. The remaining 72 migrated candidates below remain untracked and unstaged.
+The following 73 files were present in the initial audit inventory: tracked `devkit.toml` plus 72 untracked local candidates. This historical list is retained for traceability; final status is recorded below. Adopted Devkit files are tracked, and the remaining migrated groups were archived outside the repository.
 
 - `devkit.toml`
 - `skills/devkit-doc-edit/SKILL.md`

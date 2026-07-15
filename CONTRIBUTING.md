@@ -45,6 +45,12 @@ Every MATLAB PR confirms:
 
 Numerical-model PRs also require an analytic or hand-calculated fixture and a time-step convergence check.
 
+## Skills
+
+The `skills/devkit-*` directories are first-party Devkit operation contracts. Read only the task-matched Skill. `skills/matlab-engineering/` is the generic, project-authored MATLAB contract; `skills/teleop-delay-matlab/` contains this study's research-specific rules. Do not mix the two.
+
+Improve the generic MATLAB Skill only when a verified, generalizable failure or repeated workflow supports a concise rule. Keep study-specific decisions in the project Skill, one-off details in the PR report or code comments, and record evidence plus validation in `skills/matlab-engineering/CHANGELOG.md`.
+
 ## Documentation synchronization
 
 These must agree:

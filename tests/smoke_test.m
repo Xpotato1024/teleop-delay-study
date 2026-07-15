@@ -4,7 +4,7 @@ function status = smoke_test()
 testRoot = fileparts(fileparts(mfilename("fullpath")));
 srcDirectory = fullfile(testRoot, "src");
 initialPath = path;
-cleanupPath = onCleanup(@() path(initialPath)); %#ok<NASGU>
+cleanupPath = onCleanup(@() path(initialPath));
 addpath(srcDirectory);
 
 config = default_config();
@@ -22,6 +22,7 @@ end
 assert(rejected, 'A negative simulation.dt must be rejected.');
 
 requiredDirectories = {
+    fullfile(testRoot, 'skills', 'matlab-engineering')
     fullfile(testRoot, 'skills', 'teleop-delay-matlab')
     fullfile(testRoot, 'docs')
     fullfile(testRoot, 'docs', 'reports')
@@ -41,7 +42,13 @@ requiredPaths = {
     fullfile(testRoot, 'AGENTS.md')
     fullfile(testRoot, 'README.md')
     fullfile(testRoot, 'run_project.m')
+    fullfile(testRoot, 'skills', 'matlab-engineering', 'SKILL.md')
+    fullfile(testRoot, 'skills', 'matlab-engineering', 'REFERENCES.md')
+    fullfile(testRoot, 'skills', 'matlab-engineering', 'CHANGELOG.md')
     fullfile(testRoot, 'skills', 'teleop-delay-matlab', 'SKILL.md')
+    fullfile(testRoot, 'skills', 'devkit-inspect-edit-verify', 'SKILL.md')
+    fullfile(testRoot, 'skills', 'devkit-git-drafts', 'SKILL.md')
+    fullfile(testRoot, 'skills', 'devkit-tree-explore', 'SKILL.md')
     fullfile(testRoot, 'docs', 'architecture.md')
     fullfile(testRoot, 'research', 'problem_statement.md')
     fullfile(testRoot, 'src', 'main.m')

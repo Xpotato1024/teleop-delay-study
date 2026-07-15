@@ -6,7 +6,7 @@ function status = run_project()
 projectRoot = fileparts(mfilename("fullpath"));
 srcDirectory = fullfile(projectRoot, "src");
 originalPath = path;
-cleanupPath = onCleanup(@() path(originalPath)); %#ok<NASGU>
+cleanupPath = onCleanup(@() path(originalPath));
 
 addpath(srcDirectory);
 status = main();

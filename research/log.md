@@ -45,3 +45,14 @@
 - 未解決事項: MATLAB Agentic Toolkitの取得元、revision、NOTICE、再配布条件は未確認のままである。
 - 次の作業: human review後、決定論的軌道の契約と解析テストだけを実装する。
 - 関連commit / PR: `fix: remove ambiguous MATLAB skill placeholder` / draft PR #1。
+
+## 2026-07-15: first-party Skills adoption and archive follow-up
+
+- Date: 2026-07-15
+- Purpose: finalize the development Skill structure for the bootstrap PR without implementing scientific models.
+- Work: adopted the user-authored `skills/devkit-*` contracts; authored `skills/matlab-engineering/` as a generic MATLAB guide; kept `skills/teleop-delay-matlab/SKILL.md` research-specific; reviewed the local MATLAB Agentic Toolkit and recorded design references; moved reference-only and unrelated Skills to the external archive with a SHA-256 manifest; updated routing and evolution policy.
+- Result: the tracked Skill structure now separates first-party Devkit, generic MATLAB engineering, and research-specific MATLAB guidance. No trajectory, communication, plant, metric, experiment, result, or figure implementation was added.
+- Decision: future MATLAB Skill changes require a verified generalizable failure, command, or repeated workflow; study-specific decisions remain in the project Skill or research log.
+- Unresolved: upstream MATLAB provenance, revision, complete license/NOTICE, and redistribution terms remain unverified; the reviewed Toolkit is archived reference-only.
+- Next work: human review of the Skill boundaries and then the next scientific implementation PR.
+- Related commit / PR: `chore: adopt first-party skills and add MATLAB engineering guide` / draft PR #1.

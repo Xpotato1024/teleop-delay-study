@@ -80,6 +80,14 @@ Before adoption:
 
 If the tool or schema cannot be verified, classify it as `Defer`.
 
+## First-party Devkit Skills
+
+The user-authored `skills/devkit-*` directories are first-party assets, not third-party imports. Before staging them, check secrets, personal paths, cross-project references, command compatibility with the installed Devkit version, and script side effects. Preserve their structure and wording unless a safety or compatibility correction is necessary; record any such correction in the audit.
+
+## Reference-only local Skills
+
+When the user explicitly requests cleanup after reference review, move rejected or reference-only local Skill groups to the named external archive rather than deleting them. Verify the inventory and file hashes before and after the move, create an archive SHA-256 manifest, and never stage the archive or its manifest.
+
 ## Staging rule
 
 After audit:

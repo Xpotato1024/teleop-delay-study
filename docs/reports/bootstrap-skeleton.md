@@ -38,8 +38,11 @@ Detailed inventory belongs in `docs/reports/migrated-assets-audit.md`.
 | Asset | Decision | Reason | Tracked path |
 |---|---|---|---|
 | `devkit.toml` | Adopt | `devkit-cli v0.1.6`, schema template, help, encoding, and tree commands verified; no project-specific absolute path or secret | `devkit.toml` |
-| MATLAB upstream skill candidate | Defer | MathWorks claims are present, but exact source, revision, NOTICE, and redistribution terms are unverified | not staged |
-| Other skill candidates | Defer/Reject | See the complete inventory and per-group decisions in `docs/reports/migrated-assets-audit.md` | not staged |
+| `skills/devkit-*` | Adopt / first-party | User-authored Devkit operation contracts; v0.1.6 commands and safety scans verified | `skills/devkit-*` |
+| `skills/matlab-engineering` | Adopt / project-authored | Generic MATLAB execution, testing, review, debugging, and reproducibility contract | `skills/matlab-engineering/` |
+| `skills/teleop-delay-matlab` | Adopt / project-specific | Research-specific MATLAB contract kept separate from generic guidance | `skills/teleop-delay-matlab/` |
+| `skills/matlab-agentic-toolkit` | Reference-only / archived | Read for design reference; upstream revision, complete license/NOTICE, and redistribution terms remain unverified | external archive |
+| Other local Skills | Reject / archived | Unrelated prompt, PDF, and lecture workflows | external archive |
 
 Do not claim MathWorks provenance until source, revision, and redistribution terms are verified.
 
@@ -53,6 +56,18 @@ Do not claim MathWorks provenance until source, revision, and redistribution ter
 ├── devkit.toml
 ├── run_project.m
 ├── skills/
+│   ├── devkit-doc-edit/
+│   ├── devkit-encoding-hygiene/
+│   ├── devkit-git-drafts/
+│   ├── devkit-inspect-edit-verify/
+│   ├── devkit-metrics-review/
+│   ├── devkit-project-bootstrap/
+│   ├── devkit-release-maintainer/
+│   ├── devkit-tree-explore/
+│   ├── matlab-engineering/
+│   │   ├── SKILL.md
+│   │   ├── REFERENCES.md
+│   │   └── CHANGELOG.md
 │   └── teleop-delay-matlab/
 ├── docs/
 │   ├── architecture.md
@@ -72,7 +87,7 @@ Do not claim MathWorks provenance until source, revision, and redistribution ter
 └── references/
 ```
 
-Unverified local migration candidates are not part of the tracked structure; see `docs/reports/migrated-assets-audit.md`.
+Archived or untracked local migration candidates are not part of the tracked structure; see `docs/reports/migrated-assets-audit.md`.
 
 ## Validation
 
@@ -87,6 +102,8 @@ Completed for this follow-up:
 - `git diff --check` and `git diff --cached --name-status`: checked;
 - staged-content scan for local paths, private URLs, tokens, and other-project names: checked;
 - no scientific model, trajectory, metric, experiment, result, or figure introduced.
+
+The MATLAB engineering Skill and first-party Devkit Skills were audited and added after this report was first written. The MATLAB Agentic Toolkit and unrelated local Skills were moved to the external archive recorded in `docs/reports/migrated-assets-audit.md`.
 
 ## Unimplemented scientific scope
 

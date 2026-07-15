@@ -70,6 +70,15 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 │   ├── migrated-assets-policy.md
 │   └── reports/
 ├── skills/
+│   ├── devkit-doc-edit/
+│   ├── devkit-encoding-hygiene/
+│   ├── devkit-git-drafts/
+│   ├── devkit-inspect-edit-verify/
+│   ├── devkit-metrics-review/
+│   ├── devkit-project-bootstrap/
+│   ├── devkit-release-maintainer/
+│   ├── devkit-tree-explore/
+│   ├── matlab-engineering/
 │   └── teleop-delay-matlab/
 ├── results/
 ├── report/
@@ -103,3 +112,5 @@ Start with [`AGENTS.md`](AGENTS.md), then read the [research statement](research
 See [`LICENSE`](LICENSE). Imported third-party material may carry additional license or notice files in its own directory.
 
 General upstream MATLAB guidance is not tracked until its source, revision, license, NOTICE, and redistribution terms are verified. If adopted later, it belongs under `skills/matlab/`; current project-specific rules are under `skills/teleop-delay-matlab/`.
+
+The tracked `skills/matlab-engineering/` directory is the project-authored generic MATLAB guide. The `skills/devkit-*` directories are first-party Devkit operation contracts. A verified upstream MATLAB package may use `skills/matlab/` in a later change, but no such package is currently tracked.

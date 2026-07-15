@@ -16,7 +16,7 @@ The deliverable is a reproducible MATLAB simulation study and a final report. Th
 | Local development and validation | `docs/development.md` |
 | One-week execution plan and scope cuts | `docs/roadmap.md` |
 | Migrated-tooling adoption rules | `docs/migrated-assets-policy.md` |
-| General MATLAB guidance | `skills/matlab/` only after provenance is verified |
+| General MATLAB guidance | `skills/matlab-engineering/SKILL.md` |
 | Project-specific MATLAB rules | `skills/teleop-delay-matlab/SKILL.md` |
 | Final report | `report/final_report.md` |
 | Per-PR implementation reports | `docs/reports/` |
@@ -27,10 +27,10 @@ Do not treat a PR description, chat message, generated result, or code comment a
 
 Before MATLAB implementation:
 
-1. `research/problem_statement.md`
-2. `docs/architecture.md`
-3. `skills/teleop-delay-matlab/SKILL.md`
-4. `skills/matlab/SKILL.md` only when upstream provenance has been verified and `skills/matlab/UPSTREAM.md` exists
+1. `skills/matlab-engineering/SKILL.md`
+2. `skills/teleop-delay-matlab/SKILL.md`
+3. `docs/architecture.md`
+4. the target code and tests
 
 Before changing project operation or structure:
 
@@ -87,7 +87,29 @@ Follow `docs/migrated-assets-policy.md` before adoption:
 - place local rules in `skills/teleop-delay-matlab/SKILL.md`;
 - if provenance or redistribution rights cannot be verified, classify the asset as `Defer`.
 
-## 7. Validation routing
+Adopted `skills/devkit-*` directories are first-party repository skills. Read only the skill needed for the current task:
+
+- repository tree: `devkit-tree-explore`;
+- encoding: `devkit-encoding-hygiene`;
+- inspect/edit/verify: `devkit-inspect-edit-verify`;
+- Git and draft PRs: `devkit-git-drafts`;
+- documentation: `devkit-doc-edit`;
+- metrics: `devkit-metrics-review`;
+- bootstrap: `devkit-project-bootstrap`;
+- release: `devkit-release-maintainer`.
+
+Do not read every Devkit skill by default.
+
+## 7. Skill evolution
+
+- Put a generalizable MATLAB failure, verified command, or repeated workflow in `skills/matlab-engineering/SKILL.md` only when it is useful beyond this study.
+- Put teleoperation-delay-specific rules in `skills/teleop-delay-matlab/SKILL.md`.
+- Keep one-off implementation details in a code comment or PR report, and research decisions in `research/log.md`.
+- Record evidence and validation for Skill changes in `skills/matlab-engineering/CHANGELOG.md`.
+- Do not generalize a single local incident, duplicate an existing rule, or expand implementation merely to improve a Skill.
+- Check that a Skill change remains concise and rerun the affected validation.
+
+## 8. Validation routing
 
 | Change type | Required validation |
 |---|---|
@@ -102,7 +124,7 @@ Follow `docs/migrated-assets-policy.md` before adoption:
 
 MATLAB execution must use the commands documented in `docs/development.md`. Octave never substitutes for MATLAB verification.
 
-## 8. Stop conditions
+## 9. Stop conditions
 
 Stop and report instead of guessing when:
 
@@ -114,7 +136,7 @@ Stop and report instead of guessing when:
 - results change materially under a reasonable time-step reduction;
 - the requested work would require inventing a citation or result.
 
-## 9. Pull-request completion report
+## 10. Pull-request completion report
 
 Every implementation PR reports:
 
