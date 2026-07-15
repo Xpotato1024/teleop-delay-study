@@ -1,24 +1,24 @@
-# Development and validation
+# 開発・検証手順
 
-## 1. Verified environment
+## 1. 検証済み環境
 
-Bootstrap verification was performed with MATLAB R2025b. Later PRs report the actual version used. No toolbox is required until its availability and necessity are documented.
+bootstrapはMATLAB R2025b Update 5で検証した。後続PRでは実際に使用したversionを報告する。必要性と利用可能性を文書化するまで、特定Toolboxを必須としない。
 
-## 2. Entry points
+## 2. Entry point
 
-From the repository root:
+リポジトリルートから実行する。
 
 ```powershell
 matlab -batch "status=run_project(); assert(status==0)"
 ```
 
-Smoke test:
+smoke test:
 
 ```powershell
 matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_test(); assert(status==0)"
 ```
 
-Interactive equivalents:
+対話実行の場合:
 
 ```matlab
 status = run_project();
@@ -32,140 +32,141 @@ status = smoke_test();
 assert(status == 0);
 ```
 
-Entry points restore MATLAB path state. Tests must not depend on state from prior invocations.
+entry pointはMATLAB pathを元の状態へ復元する。テストは、過去の実行が残した状態に依存してはならない。
 
-## 3. Branch and PR workflow
+## 3. BranchとPRの運用
 
-- Start from updated `main`.
-- Create one branch for one work unit.
-- Do not create an Issue unless it records a real backlog item.
-- Keep the PR draft while implementation or validation is incomplete.
-- Do not merge from Codex.
-- Human review decides Ready and merge.
+- 更新済み`main`から開始する。
+- 一つの作業単位につき一つのbranchを作成する。
+- 実際のbacklogを記録する必要がない限りIssueを増やさない。
+- 実装または検証が未完了の間はPRをdraftに保つ。
+- Codexからmergeしない。
+- 人間によるreviewでReady化とmergeを判断する。
 
-Each PR synchronizes:
+各PRで次を同期する。
 
-1. implementation;
-2. tests;
-3. `research/log.md`;
-4. one report under `docs/reports/`;
-5. affected architecture or development documentation.
+1. 実装
+2. テスト
+3. `research/log.md`
+4. `docs/reports/`以下の実装報告
+5. 影響する設計または開発文書
 
-## 4. Implementation sequence
+## 4. 実装順序
 
-1. deterministic trajectory contract and generators;
-2. sender sampling, packet delay, ZOH, and CV reconstruction;
-3. plant model and numerical integration;
-4. reference systems and metrics;
-5. deterministic factorial study;
-6. optional random and sensitivity work;
-7. final report generation.
+1. 決定論的軌道の契約とgenerator
+2. 送信sampling、packet遅延、ZOH、CV再構成
+3. plantモデルと数値積分
+4. 参照系と評価指標
+5. 決定論的な完全要因実験
+6. 任意の乱数軌道と感度解析
+7. 最終レポート生成
 
-## 5. MATLAB coding expectations
+## 5. MATLAB実装方針
 
-Project-specific rules are in `skills/teleop-delay-matlab/SKILL.md`. The normal generic MATLAB source is `skills/matlab-engineering/SKILL.md`; an upstream MathWorks Skill is not part of normal routing and may be considered only as a separately verified future candidate. Project contracts take precedence if one is ever adopted.
+汎用MATLAB作業の正本は`skills/matlab-engineering/SKILL.md`、本研究固有の正本は`skills/teleop-delay-matlab/SKILL.md`である。将来上流MathWorks Skillを検討する場合も、別資産として出典と再配布条件を検証し、研究固有契約を優先する。
 
-Core expectations:
+中心方針:
 
-- functions rather than base-workspace scripts;
-- explicit configuration and units;
-- `N x 2` time-series arrays;
-- fail-fast validation;
-- deterministic result generation;
-- no hidden toolbox dependency;
-- no global warning or error suppression.
+- base workspace scriptではなく関数を用いる。
+- 設定とunitを明示する。
+- 時系列配列を`N x 2`で統一する。
+- 不正入力を早期に拒否する。
+- 結果生成を決定論的にする。
+- 隠れたToolbox依存を作らない。
+- warningまたはerrorを全体で抑制しない。
 
-## 6. Skill routing and evolution
+## 6. Skill routingと継続改善
 
-For MATLAB work, read the generic contract first, then the study contract:
+MATLAB作業では次の順に読む。
 
-1. `skills/matlab-engineering/SKILL.md`;
-2. `skills/teleop-delay-matlab/SKILL.md`;
-3. `docs/architecture.md`;
-4. the target code and tests.
+1. `skills/matlab-engineering/SKILL.md`
+2. `skills/teleop-delay-matlab/SKILL.md`
+3. `docs/architecture.md`
+4. 対象コードとテスト
 
-Update `matlab-engineering` in the same PR when a failure, verified command, or repeated workflow generalizes to other MATLAB projects. Keep communication-delay research rules in `teleop-delay-matlab`, one-off details in code comments or the PR report, research decisions in `research/log.md`, and evidence plus validation in `skills/matlab-engineering/CHANGELOG.md`. Do not promote a single local incident or duplicate an existing rule; keep the Skill concise and rerun affected checks.
+失敗、検証済みコマンド、反復手順が他のMATLABプロジェクトにも一般化できる場合は、同じPRで`matlab-engineering`を更新してよい。通信遅延研究固有の規則は`teleop-delay-matlab`へ、単発の詳細はコードコメントまたはPR報告へ、研究判断は`research/log.md`へ記録する。汎用Skill変更の根拠と検証結果は`skills/matlab-engineering/CHANGELOG.md`へ追記する。単発の局所問題を一般化せず、重複規則を増やさず、Skillを簡潔に保つ。
 
-For ordinary Devkit use in this repository, read only the task-matched first-party Skill: tree exploration, encoding hygiene, inspect/edit/verify, Git drafts, documentation, metrics, or project bootstrap CLI usage. Keep `devkit-release-maintainer` outside normal routing. Use it only when the target is a Devkit source checkout containing `.github/workflows/release.yml`, `rust/crates/devkit-cli`, and `rust/crates/devkit-installer`, and the user explicitly requests Devkit release maintenance. Do not use it for `teleop-delay-study` release work. The Python sync script bundled with `devkit-project-bootstrap` is likewise a guarded Devkit-source maintenance fallback; prefer the Devkit CLI for this repository.
+通常のDevkit利用では、tree、encoding、inspect/edit/verify、Git draft、文書、metrics、project bootstrap CLIのうち、タスクに対応するfirst-party Skillだけを読む。`devkit-release-maintainer`は通常routingに含めない。対象がDevkit source checkoutで、`.github/workflows/release.yml`、`rust/crates/devkit-cli`、`rust/crates/devkit-installer`が存在し、Devkit本体のrelease保守を明示的に依頼された場合だけ使用する。`teleop-delay-study`のreleaseには使用しない。`devkit-project-bootstrap`のPython同期scriptもDevkit本体向けfallbackであり、本リポジトリではDevkit CLIを優先する。
 
-## 7. Validation levels
+## 7. 検証水準
 
-### Documentation-only PR
+### 文書のみのPR
 
-- verify relative links;
-- verify terminology against `research/problem_statement.md`;
-- verify commands against actual files;
-- run `git diff --check`.
+- 相対リンクを確認する。
+- `research/problem_statement.md`と用語を一致させる。
+- 記載コマンドを実ファイルと照合する。
+- 人間向け文書が日本語であることを確認する。
+- `git diff --check`を実行する。
 
-### Entry-point/configuration PR
+### Entry point・設定PR
 
-- run `run_project`;
-- run `smoke_test`;
-- verify status `0`;
-- verify MATLAB path before and after;
-- test invalid configuration rejection.
+- `run_project`を実行する。
+- `smoke_test`を実行する。
+- status `0`を確認する。
+- 実行前後のMATLAB pathを比較する。
+- 不正設定が拒否されることを確認する。
 
-### Scientific-function PR
+### 科学関数PR
 
-- add focused unit tests;
-- include hand-calculated or analytic fixtures;
-- test boundaries and invalid inputs;
-- verify finite output and array shapes;
-- run smoke test and entry point.
+- 変更に集中したunit testを追加する。
+- 手計算または解析可能なfixtureを含める。
+- 境界と不正入力をテストする。
+- 出力が有限で想定shapeであることを確認する。
+- smoke testとentry pointを実行する。
 
-### Numerical-model PR
+### 数値モデルPR
 
-Also:
+上記に加えて、
 
-- compare with an analytic solution where possible;
-- halve integration step and quantify metric change;
-- reject NaN/Inf;
-- document solver, step, and convergence threshold.
+- 可能な範囲で解析解と比較する。
+- 積分刻みを半減し、評価指標の変化を定量化する。
+- NaNとInfを拒否する。
+- solver、時間刻み、収束thresholdを記録する。
 
-### Experiment PR
+### 実験PR
 
-- use a clean output directory;
-- save configuration with results;
-- run paired methods on identical trajectories;
-- verify expected case count;
-- generate plots from saved results;
-- report runtime and failed cases.
+- cleanな出力directoryを使用する。
+- 結果と設定を一緒に保存する。
+- 同じ軌道に対して方式を対応付けて実行する。
+- 予定case数を確認する。
+- 保存結果から図を生成する。
+- 実行時間と失敗caseを報告する。
 
-## 8. Results and figures
+## 8. 結果と図
 
-`results/` contains generated intermediate data, run manifests, diagnostics, and tables. It is ignored except for its placeholder.
+`results/`には中間データ、run manifest、診断値、表を保存する。placeholder以外は通常Git追跡しない。
 
-`report/figures/` contains final figures used in the report and is tracked. A committed figure has a documented regeneration command and source result/config.
+`report/figures/`には最終レポートで使用する図を保存し、Git追跡する。commitする図には再生成コマンドとsource result/configを対応付ける。
 
-Do not manually alter plotted values or replace generated figures with visually similar files.
+plot値を手作業で変更したり、生成図を見た目だけ似た別ファイルに置換したりしない。
 
-## 9. Research log
+## 9. 研究ログ
 
-Append a dated entry whenever any of the following changes:
+次が変わった場合は、日付付きで追記する。
 
-- research question or hypothesis;
-- signal or metric definition;
-- default or sweep parameter;
-- initialization or evaluation window;
-- solver or convergence threshold;
-- scope or priority;
-- interpretation of a result.
+- 研究質問または仮説
+- 信号または評価指標の定義
+- defaultまたはsweep parameter
+- 初期化または評価区間
+- solverまたは収束threshold
+- scopeまたは優先度
+- 結果の解釈
 
-Do not rewrite earlier entries.
+過去entryを後から書き換えない。
 
-## 10. Failure handling
+## 10. 失敗時の処理
 
-When a command fails:
+コマンドが失敗した場合:
 
-1. retain the exact command and relevant output;
-2. identify environment, contract, implementation, or data failure;
-3. do not label the check successful;
-4. make the smallest correction;
-5. rerun the failed and relevant regression checks;
-6. record unresolved failures in the PR.
+1. 正確なコマンドと必要な出力を保持する。
+2. 環境、契約、実装、データのどこで失敗したか分類する。
+3. 成功として報告しない。
+4. 最小の修正を行う。
+5. 失敗したcheckと関連regression checkを再実行する。
+6. 未解決の失敗をPRへ記録する。
 
-## 11. Migrated assets
+## 11. 移植資産
 
-Follow `docs/migrated-assets-policy.md` before staging imported local files. Audit results belong in `docs/reports/migrated-assets-audit.md`.
+ローカル移植ファイルをstageする前に`docs/migrated-assets-policy.md`へ従う。監査結果は`docs/reports/migrated-assets-audit.md`へ記録する。
 
-Upstream skill content and project-specific guidance must remain separate.
+上流Skillと本研究固有の説明を混在させない。
