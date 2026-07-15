@@ -250,7 +250,7 @@ MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、si
 | `models/plant/first_order_2d.slx` | `command_xy_m`（2要素、double、m）を受け、`position_xy_m`（2要素、double、m）を返す。`time_constant_s`をmodel argumentとして公開する。 |
 | `models/system/teleop_delay_system.slx` | MATLAB軌道を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、commandとpositionをDataset loggingする。 |
 
-top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension 2、type double、unit mを固定し、外部入力は固定時間gridの`timeseries`として与える。plantはcontinuous State-Spaceで、実行時の`FixedStep`は`config.simulation.fixed_step`から`SimulationInput`へ渡す。packet sampling、通信遅延、ZOH、CV、metrics、作図はこの基盤に含めない。
+top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension 2、type double、unit m、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とする。実行時の`FixedStep`は`config.simulation.fixed_step`から`SimulationInput`へ渡す。packet sampling、通信遅延、ZOH、CV、metrics、作図はこの基盤に含めない。
 
 `time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceや`.slx`の再生成には依存しない。
 

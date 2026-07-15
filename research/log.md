@@ -102,3 +102,13 @@
 - 環境: MATLAB R2025b Update 5、version `25.2.0.3177638`、Simulink同環境。
 - 未実施: 通信遅延、packet sampling、ZOH、CV、metrics、補償効果、実験結果の評価。
 - 次の作業: follow-up commitをdraft PR #4へpushし、人間reviewを待つ。Issue #2はOPENのままとする。
+
+## 2026-07-15: 最終監査P2修正
+
+- 目的: configの型契約とSimulink sample-time/dimension契約に関するP2指摘2件だけを修正する。
+- config契約: `trajectory.type`と`simulation.solver`をnonmissing string scalarに限定し、許可値をそれぞれ`circle`/`lissajous_1_2`と`ode4`の完全一致に限定した。default configからdispatcherまで同じ型契約を通過することをunit testで確認した。
+- model契約: R2025b Update 5で実取得したInport/Outportの`SampleTime=-1`、State-Space blockのcompiled sample time `[0 0]`、top-level solver `ode4`を`validate_models`とmodel testへ反映した。未対応のState-Space `SampleTime` parameterは使用していない。
+- dimension: 3列external inputを実simulationへ渡すmodel testを追加し、拒否されることを確認した。runtimeのFixedStep上書きは`dt=0.005 s`の出力sample間隔で確認し、追跡modelの既定`0.01`は変更されないことも確認した。
+- 回帰結果: unit 15件、model 9件、integration 4件、smoke test、checkcode、run_project三形式、path復元、open model cleanup、model hash不変を通過した。
+- 解析回帰: `T=0.2 s`、定値入力`[1, 0.5]`で、`dt=0.01 s`の最大誤差`1.9976097331841913e-08`、`dt=0.005 s`の最大誤差`1.2227420187471694e-09`、誤差比`0.061210255358443696`。既存測定値から悪化していない。
+- 未実施: 通信遅延、packet sampling、ZOH、CV、metrics、補償効果。

@@ -10,7 +10,33 @@ verifyEqual(testCase, info.input_dimension, 2);
 verifyEqual(testCase, info.output_dimension, 2);
 verifyEqual(testCase, info.data_type, "double");
 verifyEqual(testCase, info.unit, "m");
+verifyEqual(testCase, info.sample_time, -1);
+verifyEqual(testCase, info.plant_state_sample_time, 0);
+verifyEqual(testCase, info.solver, "ode4");
 verifyEqual(testCase, get_param_model_argument(paths), "time_constant_s");
+end
+
+function testSampleTimeAndSolverContracts(testCase)
+paths = teleopdelay.simulink.model_paths(project_root());
+load_system(paths.plant);
+load_system(paths.system);
+cleanup = onCleanup(@() close_models(paths));
+set_param(paths.plantModelName, 'SimulationCommand', 'update');
+set_param(paths.systemModelName, 'SimulationCommand', 'update');
+blocks = {[char(paths.plantModelName) '/command_xy_m'], ...
+    [char(paths.plantModelName) '/position_xy_m'], ...
+    [char(paths.systemModelName) '/command_xy_m'], ...
+    [char(paths.systemModelName) '/command_logging_sink'], ...
+    [char(paths.systemModelName) '/position_logging_sink']};
+for index = 1:numel(blocks)
+    verifyEqual(testCase, string(get_param(blocks{index}, 'SampleTime')), "-1");
+end
+stateBlock = [char(paths.plantModelName) '/first_order_state_space'];
+verifyEqual(testCase, string(get_param(stateBlock, 'BlockType')), "StateSpace");
+verifyEqual(testCase, get_param(stateBlock, 'CompiledSampleTime'), [0 0]);
+verifyEqual(testCase, string(get_param(paths.systemModelName, 'Solver')), "ode4");
+clear cleanup;
+close_models(paths);
 end
 
 function testConstantInputAnalyticSolution(testCase)
@@ -78,6 +104,41 @@ verifyLessThan(testCase, coarse_error, 1e-5);
 verifyLessThan(testCase, fine_error, coarse_error);
 end
 
+function testRuntimeFixedStepOverridesModelDefault(testCase)
+config = short_config(0.2, 0.005, 0.02);
+simulation = run_constant_case(config, [1, 0.5]);
+verifyEqual(testCase, diff(simulation.time_s), ...
+    repmat(config.simulation.fixed_step, numel(simulation.time_s) - 1, 1), AbsTol=1e-12);
+paths = teleopdelay.simulink.model_paths(project_root());
+load_system(paths.plant);
+load_system(paths.system);
+cleanup = onCleanup(@() close_models(paths));
+verifyEqual(testCase, string(get_param(paths.systemModelName, 'FixedStep')), "0.01");
+clear cleanup;
+close_models(paths);
+end
+
+function testExternalInputWithWrongDimensionIsRejected(testCase)
+paths = teleopdelay.simulink.model_paths(project_root());
+config = short_config(0.2, 0.01, 0.02);
+time_s = teleopdelay.timegrid.create(config.simulation.duration, config.simulation.dt);
+wrongCommand = zeros(numel(time_s), 3);
+load_system(paths.plant);
+load_system(paths.system);
+cleanup = onCleanup(@() close_models(paths));
+simulationInput = Simulink.SimulationInput(paths.systemModelName);
+simulationInput = simulationInput.setExternalInput(timeseries(wrongCommand, time_s));
+simulationInput = simulationInput.setModelParameter( ...
+    'StopTime', string(config.simulation.duration), ...
+    'Solver', string(config.simulation.solver), ...
+    'FixedStep', string(config.simulation.fixed_step));
+simulationInput = simulationInput.setVariable('time_constant_s', ...
+    config.plant.time_constant, Workspace=paths.systemModelName);
+verifyRejected(testCase, @() sim(simulationInput));
+clear cleanup;
+close_models(paths);
+end
+
 function simulation = run_constant_case(config, command)
 root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
@@ -112,4 +173,19 @@ function close_if_loaded(modelName)
 if bdIsLoaded(modelName)
     close_system(modelName, 0);
 end
+end
+
+function close_models(paths)
+close_if_loaded(paths.systemModelName);
+close_if_loaded(paths.plantModelName);
+end
+
+function verifyRejected(testCase, functionHandle)
+rejected = false;
+try
+    functionHandle();
+catch
+    rejected = true;
+end
+verifyTrue(testCase, rejected);
 end

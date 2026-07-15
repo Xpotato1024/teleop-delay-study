@@ -19,12 +19,24 @@ validateattributes(config.trajectory.omega, {'numeric'}, {'scalar', 'real', 'fin
 validateattributes(config.random.seed, {'numeric'}, {'scalar', 'real', 'finite'}, mfilename, 'random.seed');
 assert(config.random.seed >= 0 && config.random.seed == floor(config.random.seed), ...
     'random.seed must be a nonnegative integer.');
-assert(any(string(config.trajectory.type) == ["circle", "lissajous_1_2"]), ...
-    'config.trajectory.type must be circle or lissajous_1_2.');
+validate_string_scalar(config.trajectory.type, "config.trajectory.type");
+if ~any(config.trajectory.type == ["circle", "lissajous_1_2"])
+    error("teleopDelay:InvalidConfig", ...
+        "config.trajectory.type must be exactly circle or lissajous_1_2.");
+end
 validateattributes(config.simulation.fixed_step, {'numeric'}, ...
     {'scalar', 'real', 'finite', 'positive'}, mfilename, 'simulation.fixed_step');
-assert(strcmp(string(config.simulation.solver), "ode4"), ...
-    'simulation.solver must be ode4 for the foundation model.');
+validate_string_scalar(config.simulation.solver, "config.simulation.solver");
+if config.simulation.solver ~= "ode4"
+    error("teleopDelay:InvalidConfig", ...
+        "config.simulation.solver must be exactly ode4 for the foundation model.");
+end
 
 isValid = true;
+end
+
+function validate_string_scalar(value, fieldName)
+if ~(isstring(value) && isscalar(value) && ~ismissing(value))
+    error("teleopDelay:InvalidConfig", "%s must be a nonmissing string scalar.", fieldName);
+end
 end

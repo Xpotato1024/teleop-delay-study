@@ -40,11 +40,14 @@ plant境界は次で固定した。
 | `command_xy_m` | 2 | double | m |
 | `position_xy_m` | 2 | double | m |
 
-plantはcontinuous State-Spaceであり、外部入力は固定時間gridの`timeseries`である。solverの`FixedStep`はconfigから`SimulationInput`へ渡す。top-levelはplant内部block pathやstateへ依存しない。loggingはDataset element名を完全一致で検証し、duplicateまたはmissingを拒否したため、Outport順序に依存しない。
+plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`である。plant Inport/Outportとtop-level Inport/Outportの`SampleTime`は実環境の`get_param`で`-1`を取得した。外部入力は固定時間gridの`timeseries`であり、solverの`FixedStep`はconfigから`SimulationInput`へ渡す。top-levelはplant内部block pathやstateへ依存しない。loggingはDataset element名を完全一致で検証し、duplicateまたはmissingを拒否したため、Outport順序に依存しない。
+
+configの`trajectory.type`と`simulation.solver`はnonmissing string scalarだけを受理し、それぞれ`circle`/`lissajous_1_2`、`ode4`の完全一致を要求する。default configがこの型契約を満たしたままtrajectory dispatcherへ渡ることもunit testで確認した。char vector、string array、case違い、missing fieldは拒否する。
 
 ## MATLAB unit validation
 
 - time grid: 4 tests。endpoint、column shape、zero duration、非整数step、zero/negative/NaN/Inf、不整合を隠すendpoint上書きの拒否を確認した。
+- config/time grid: 7 tests。configのstring scalar型契約、完全一致、missing field、default configからdispatcherへの接続、endpoint、column shape、非整数step、不正値を確認した。
 - trajectory: 8 tests。circleとLissajousの`t=0`、周期、shape、finite値、解析微分、有限差分、dispatcherのtype/time validationを確認した。
 
 有限差分の許容値は、中心差分の打切り誤差とdoubleの丸め誤差を考慮した。circleは速度・加速度`1e-7`、Lissajousは速度`2e-7`・加速度`5e-7`とした。
@@ -70,8 +73,8 @@ integration test 4件を通過した。`run_project()`三形式、circle/Lissajo
 - MATLAB: R2025b Update 5、version `25.2.0.3177638`
 - Simulink: R2025b Update 5
 - explicit model builder: 成功
-- unit tests: 12件通過
-- model tests: 6件通過
+- unit tests: 15件通過
+- model tests: 9件通過
 - integration tests: 4件通過
 - `smoke_test`: 通過
 - `checkcode -id`: 問題なし
@@ -87,6 +90,6 @@ integration test 4件を通過した。`run_project()`三形式、circle/Lissajo
 - Issue: #2 OPEN
 - branch: `codex/2-matlab-simulink-implementation`
 - draft PR: #4
-- 最終検証commit SHA: `90c8c77`（full SHAはGit履歴とPR #4で確認可能）
+- 最終監査commit SHA: この修正commit完了後に更新
 
 PR本文では`Refs #2`を維持する。`Closes #2`への変更、Ready化、merge、Issue closeは行わない。
