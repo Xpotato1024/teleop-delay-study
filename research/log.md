@@ -12,3 +12,14 @@
 - 未解決事項: 軌道の具体的な種類、実験条件の範囲、数値積分法の詳細、評価指標の正規化方法は後続PRで決定する。
 - 次の作業: 決定論的軌道生成の仕様を定め、再現可能なテストを追加する。
 - 関連commit / PR: draft PR #1（`chore: bootstrap teleoperation delay study`）。
+
+## 2026-07-15: bootstrap監査follow-up
+
+- 日付: 2026-07-15
+- 目的: PR #1のP1/P2監査指摘を修正し、スケルトンの実行境界と研究スコープを明確にする。
+- 実施内容: `run_project.m`と`tests/smoke_test.m`を関数化し、実行前後のMATLAB path完全一致を検証するテストを追加した。研究全体の対象外を修正し、仮説の運動学的表現を更新し、`report/figures/`をGit追跡可能にした。
+- 結果: follow-up修正を実施した。科学モデル、軌道生成、実験結果は未実装のままである。
+- 判断: bootstrap PRでは実行入口、path cleanup、研究スコープ、成果物管理だけを扱い、科学モデルの実装には進まない。
+- 未解決事項: 決定論的軌道生成以降のモデル仕様と実験条件は後続PRで決定する。
+- 次の作業: human review後、決定論的軌道生成の仕様化へ進む。
+- 関連commit / PR: follow-up commit / draft PR #1。

@@ -1,9 +1,10 @@
+function status = smoke_test()
 % smoke_test  MATLABスケルトンの最小限の構成・設定検証。
 
-testRoot = fileparts(fileparts(mfilename('fullpath')));
-srcDirectory = fullfile(testRoot, 'src');
-originalPath = path;
-cleanupPath = onCleanup(@() path(originalPath)); %#ok<NASGU>
+testRoot = fileparts(fileparts(mfilename("fullpath")));
+srcDirectory = fullfile(testRoot, "src");
+initialPath = path;
+cleanupPath = onCleanup(@() path(initialPath)); %#ok<NASGU>
 addpath(srcDirectory);
 
 config = default_config();
@@ -56,4 +57,15 @@ for pathIndex = 1:numel(requiredPaths)
     assert(isfile(requiredPaths{pathIndex}), 'Missing required file: %s.', requiredPaths{pathIndex});
 end
 
+% run_projectを一時的に見つけられるようにするが、テスト終了時には残さない。
+addpath(testRoot);
+pathBeforeRunProject = path;
+status = run_project();
+assert(status == 0, 'run_project must return status 0.');
+assert(strcmp(pathBeforeRunProject, path), 'run_project must restore the MATLAB path exactly.');
+
+% 正常終了時にも、この関数が追加したpathを呼出元へ残さないことを確認する。
+clear cleanupPath;
+assert(strcmp(initialPath, path), 'smoke_test must not leave MATLAB path changes.');
 fprintf('smoke_test passed.\n');
+end
