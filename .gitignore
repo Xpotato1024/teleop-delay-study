@@ -7,6 +7,9 @@ octave-workspace
 results/*
 !results/.gitkeep
 
+# Devkit local metrics
+.devkit-metrics.jsonl
+
 # Operating-system files
 .DS_Store
 Thumbs.db

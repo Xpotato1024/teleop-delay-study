@@ -22,7 +22,7 @@ end
 assert(rejected, 'A negative simulation.dt must be rejected.');
 
 requiredDirectories = {
-    fullfile(testRoot, 'skills', 'matlab')
+    fullfile(testRoot, 'skills', 'teleop-delay-matlab')
     fullfile(testRoot, 'docs')
     fullfile(testRoot, 'docs', 'reports')
     fullfile(testRoot, 'research')
@@ -41,7 +41,7 @@ requiredPaths = {
     fullfile(testRoot, 'AGENTS.md')
     fullfile(testRoot, 'README.md')
     fullfile(testRoot, 'run_project.m')
-    fullfile(testRoot, 'skills', 'matlab', 'SKILL.md')
+    fullfile(testRoot, 'skills', 'teleop-delay-matlab', 'SKILL.md')
     fullfile(testRoot, 'docs', 'architecture.md')
     fullfile(testRoot, 'research', 'problem_statement.md')
     fullfile(testRoot, 'src', 'main.m')

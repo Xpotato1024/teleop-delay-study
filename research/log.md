@@ -34,3 +34,14 @@
 - 未解決事項: Deferした移植候補の再配布条件と上流差分は、必要性と出典が確認できた場合に別途再監査する。
 - 次の作業: 次のPRでは決定論的軌道の契約と解析テストだけを実装する。
 - 関連commit / PR: `docs: finalize bootstrap and audit migrated tooling` / draft PR #1。
+
+## 2026-07-15: final bootstrap audit follow-up
+
+- 日付: 2026-07-15
+- 目的: 未検証MATLAB Skill placeholderの重複を除去し、最終tracked structureとDevkit成果物管理を正確にする。
+- 実施内容: 追跡済み`skills/matlab/SKILL.md`を削除し、`tests/smoke_test.m`の必須構造確認を`skills/teleop-delay-matlab/`へ更新した。`.devkit-metrics.jsonl`をignoreへ追加し、READMEとbootstrap構造図から未追跡候補を除外した。
+- 結果: プロジェクト固有MATLAB Skillは`skills/teleop-delay-matlab/SKILL.md`だけになった。未追跡`skills/matlab-agentic-toolkit/`のDefer判断は変更していない。科学モデル、結果、図は未実装である。
+- 判断: 検証済みupstreamを将来導入するまで`skills/matlab/`は追跡しない。未追跡候補72ファイルはstageしない。
+- 未解決事項: MATLAB Agentic Toolkitの取得元、revision、NOTICE、再配布条件は未確認のままである。
+- 次の作業: human review後、決定論的軌道の契約と解析テストだけを実装する。
+- 関連commit / PR: `fix: remove ambiguous MATLAB skill placeholder` / draft PR #1。

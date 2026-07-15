@@ -70,7 +70,6 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 │   ├── migrated-assets-policy.md
 │   └── reports/
 ├── skills/
-│   ├── matlab/
 │   └── teleop-delay-matlab/
 ├── results/
 ├── report/
@@ -102,3 +101,5 @@ Start with [`AGENTS.md`](AGENTS.md), then read the [research statement](research
 ## License
 
 See [`LICENSE`](LICENSE). Imported third-party material may carry additional license or notice files in its own directory.
+
+General upstream MATLAB guidance is not tracked until its source, revision, license, NOTICE, and redistribution terms are verified. If adopted later, it belongs under `skills/matlab/`; current project-specific rules are under `skills/teleop-delay-matlab/`.

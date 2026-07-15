@@ -53,9 +53,7 @@ Do not claim MathWorks provenance until source, revision, and redistribution ter
 ├── devkit.toml
 ├── run_project.m
 ├── skills/
-│   ├── matlab/
-│   ├── teleop-delay-matlab/
-│   └── (unverified local candidates remain unstaged)
+│   └── teleop-delay-matlab/
 ├── docs/
 │   ├── architecture.md
 │   ├── development.md
@@ -73,6 +71,8 @@ Do not claim MathWorks provenance until source, revision, and redistribution ter
 ├── results/
 └── references/
 ```
+
+Unverified local migration candidates are not part of the tracked structure; see `docs/reports/migrated-assets-audit.md`.
 
 ## Validation
 
