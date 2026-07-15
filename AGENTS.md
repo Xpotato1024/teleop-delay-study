@@ -90,6 +90,7 @@ MATLAB/Simulink実装前:
 MATLABは次を担当する。
 
 - 設定生成と検証
+- 固定時間grid生成
 - 決定論的軌道生成
 - 実験条件の列挙
 - `Simulink.SimulationInput`の構築
@@ -103,6 +104,7 @@ MATLAB実装は`src/+teleopdelay/`以下のpackageへ責務別に置く。
 src/+teleopdelay/
 ├── +app/
 ├── +config/
+├── +timegrid/
 ├── +trajectory/
 ├── +simulink/
 ├── +metrics/
@@ -144,7 +146,7 @@ models/
 - `run_project.m`は`src/`だけを一時的にpathへ追加し、完全に復元する。`genpath`やpackage subdirectoryの個別`addpath`を使用しない。
 - Simulinkへ値を渡すときは`Simulink.SimulationInput`、model workspace、または明示的なdata interfaceを使う。
 - base workspace、手動GUI操作、実行順序、前回simulation状態へ依存しない。
-- trajectory、config、metrics等のMATLAB packageは`.slx`内部構造を直接操作しない。モデル構築・実行に必要な操作は`+teleopdelay/+simulink/`へ集約する。
+- timegrid、trajectory、config、metrics等のMATLAB packageは`.slx`内部構造を直接操作しない。モデル構築・実行に必要な操作は`+teleopdelay/+simulink/`へ集約する。
 - `.slx`をprogrammatic builderで生成・更新する場合、builderとmodel fileを同じPRで同期する。builderを正本とする箇所は実装報告に明記する。
 - GUIだけで変更したモデルを、再生成方法または変更根拠なしにcommitしない。
 
@@ -155,7 +157,7 @@ models/
 ```text
 run_project
   → teleopdelay.app
-    → config / trajectory / simulink / metrics / experiment / reporting
+    → config / timegrid / trajectory / simulink / metrics / experiment / reporting
 
 models/system/teleop_delay_system.slx
   → models/plant/first_order_2d.slx
@@ -164,8 +166,8 @@ models/system/teleop_delay_system.slx
 禁止する方向:
 
 ```text
-plant → trajectory / communication / compensation / metrics / reporting
-trajectory → Simulink model内部
+plant → timegrid / trajectory / communication / compensation / metrics / reporting
+timegrid / trajectory → Simulink model内部
 metrics → model構築
 低位層 → app
 ```
