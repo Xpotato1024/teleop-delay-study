@@ -1,111 +1,107 @@
-# Research problem statement
+# 研究課題
 
-## Title
+## タイトル
 
-**Operating range of constant-velocity prediction under communication delay in remote robot position commands**
-
-Japanese report title:
-
-**遠隔操作ロボットの通信遅延に対する定速度予測補償の有効範囲**<br>
+**遠隔操作ロボットの通信遅延に対する定速度予測補償の有効範囲**  
 ― 一次遅れ・純遅延モデルを用いた軌道追従解析 ―
 
-## Background
+## 背景
 
-A remote robot receives commands after transport delay. When target position changes continuously, the newest available packet describes a past state and creates spatial tracking error. Constant-velocity prediction extrapolates a timestamped position using velocity, but effectiveness depends on packet age and on how rapidly the velocity vector changes.
+遠隔操作ロボットは、通信遅延を経て位置指令を受信する。目標位置が連続的に変化する場合、利用できる最新packetは過去の状態を表すため、空間的な追従誤差が生じる。定速度予測は、timestamp付きの位置と速度から現在位置を外挿する単純な方法であるが、その有効性はpacket ageと速度vectorの変化量に依存する。
 
-## Objective
+## 目的
 
-Construct a reproducible MATLAB simulation separating packetization, fixed transport delay, command reconstruction, and a first-order robot response. Quantify when constant-velocity prediction improves tracking and identify conditions where improvement disappears or becomes negative.
+packet化、固定通信遅延、指令再構成、一次遅れのロボット応答を分離した再現可能なMATLABシミュレーションを構築する。定速度予測が追従誤差を改善する条件と、改善が消失または悪化へ転じる条件を定量化する。
 
-## Research question
+## 研究質問
 
-How do transport delay, trajectory speed, trajectory shape, packet sampling, and plant time constant affect:
+通信遅延、軌道速度、軌道形状、packet sampling、plant時定数は、次へどのような影響を与えるか。
 
-1. continuous-target tracking error;
-2. delay-induced error relative to a method-specific zero-delay baseline;
-3. improvement or degradation produced by constant-velocity prediction?
+1. 連続目標に対する総追従誤差
+2. 方式固有のゼロ遅延基準に対する通信遅延起因誤差
+3. 定速度予測による改善または悪化
 
-Can results be organized by dimensionless quantities such as \(\omega L\), or do sampling and plant dynamics require additional ratios?
+また、結果を\(\omega L\)等の無次元量で整理できるか。それともsamplingとplant動特性を表す追加の無次元量が必要か。
 
-## Hypotheses
+## 仮説
 
-1. Tracking error increases as transport delay and motion speed increase.
-2. Constant-velocity prediction reduces error when the velocity vector changes slowly over effective packet age.
-3. Large acceleration caused by speed change or turning increases first-order extrapolation residual.
-4. \(\omega L\) is important for periodic trajectories, but \(\omega h_s\) and \(\omega T\) may prevent single-parameter collapse.
-5. CV may improve continuous-target tracking even at zero transport delay because it reconstructs motion between samples; method-specific zero-delay baselines are therefore required to isolate transport-delay effects.
+1. 通信遅延と運動速度が増えるほど追従誤差は増加する。
+2. 有効packet ageの間に速度vectorが大きく変化しない条件では、定速度予測が誤差を低減する。
+3. 加減速または旋回による大きな加速度は、一次外挿の残差を増加させる。
+4. 周期軌道では\(\omega L\)が主要な整理変数となるが、\(\omega h_s\)と\(\omega T\)の影響により、一変数だけではcollapseしない可能性がある。
+5. CVはsample間の運動を再構成するため、通信遅延がゼロでも連続目標への追従を改善する可能性がある。したがって通信遅延だけの影響を分離するには、方式固有のゼロ遅延基準が必要である。
 
-These are pre-simulation hypotheses, not results.
+これらはシミュレーション実行前の仮説であり、結果ではない。
 
-## Compared methods
+## 比較方式
 
-- packetized command with zero transport delay;
-- delayed zero-order hold;
-- delayed constant-velocity dead reckoning.
+- packetized command・通信遅延ゼロ
+- 通信遅延あり・ゼロ次ホールド
+- 通信遅延あり・定速度デッドレコニング
 
-For delay isolation, each reconstruction method is evaluated at zero transport delay under identical sampling.
+通信遅延の影響を分離するため、各再構成方式を同じsampling条件のゼロ遅延でも評価する。
 
-## Core trajectories
+## 中心軌道
 
 P0:
 
-- circle;
-- 1:2 Lissajous trajectory.
+- 円軌道
+- 1:2 Lissajous軌道
 
 P1:
 
-- seeded point-to-point minimum-jerk trajectories using common random numbers for paired comparison.
+- 共通乱数を用いた、通過点間の最小ジャーク軌道
 
-Human-generated input is not used because it reduces reproducibility and requires an experimental design beyond the available period.
+人間が生成した入力は、再現性を下げ、利用可能期間を超える実験設計を必要とするため使用しない。
 
-## Model abstraction
+## モデル化の範囲
 
-Included:
+含むもの:
 
-- two-dimensional position and velocity;
-- fixed-rate sender sampling;
-- timestamped packets;
-- fixed one-way transport delay;
-- latest-available-packet selection;
-- ZOH and CV reconstruction;
-- axis-independent first-order plant;
-- numerical integration and error metrics.
+- 2次元位置・速度
+- 固定周期の送信sampling
+- timestamp付きpacket
+- 固定片道通信遅延
+- 利用可能な最新packetの選択
+- ZOHとCVによる指令再構成
+- 各軸独立の一次遅れplant
+- 数値積分と誤差評価
 
-Excluded:
+含まないもの:
 
-- human-subject performance, learning, and subjective workload;
-- real network measurement;
-- packet loss, jitter, and reordering;
-- detailed 3D robot geometry, IK, joint limits, collision, contact, and force feedback;
-- closed-loop bilateral teleoperation and passivity control;
-- machine-learning prediction.
+- 人の操作performance、学習、主観的負荷
+- 実ネットワーク計測
+- packet loss、jitter、順序入替え
+- 詳細な3Dロボット形状、IK、関節制限、衝突、接触、力覚
+- 閉ループ双方向teleoperationとpassivity制御
+- 機械学習予測
 
-## Primary metrics
+## 主要評価指標
 
-- normalized task-tracking RMSE;
-- normalized method-specific delay-induced RMSE;
-- maximum Euclidean position error;
-- task-tracking improvement ratio.
+- 正規化総追従RMSE
+- 正規化方式別通信遅延起因RMSE
+- 最大Euclidean位置誤差
+- 総追従誤差の改善率
 
-Definitions and reference systems are fixed in `docs/architecture.md`.
+定義と参照系は`docs/architecture.md`を正本とする。
 
-## Originality and independent problem setting
+## 独自性と主体的な問題設定
 
-Constant-velocity prediction is established and is not claimed as a new algorithm. The independent contribution is:
+定速度予測は既知の方法であり、新規algorithmとは主張しない。本課題の主体的な設定は次にある。
 
-- asking for an operating range and degradation boundary rather than one successful case;
-- replacing human input with reproducible trajectories;
-- separating task error from transport-delay-induced error;
-- pairing methods on identical inputs and conditions;
-- attempting a dimensionless interpretation while testing where it fails;
-- documenting numerical convergence and failure conditions.
+- 単一の成功例ではなく、有効範囲と悪化境界を求める。
+- 人間入力を再現可能な標準軌道へ置き換える。
+- 総追従誤差と通信遅延起因誤差を分離する。
+- 各方式を完全に同じ入力・条件で対応付けて比較する。
+- 無次元量による一般化を試み、成立しない範囲も検証する。
+- 数値計算の収束性と失敗条件を記録する。
 
-## Success criterion
+## 成功条件
 
-The project succeeds when it can reproducibly state, within the simplified model:
+宣言した簡略モデルの範囲内で、次を再現可能に示せれば本課題は成功とする。
 
-- how error changes across the P0 delay/speed/trajectory grid;
-- where CV improves or worsens task tracking relative to ZOH;
-- how much observed error is attributable to transport delay;
-- whether dimensionless organization is supported;
-- what limitations prevent direct generalization to a real system.
+- P0の遅延・速度・軌道gridで誤差がどのように変化するか
+- CVがZOHより総追従を改善または悪化させる境界
+- 観測誤差のうち通信遅延に起因する量
+- 無次元量による整理が支持されるか
+- 実teleoperation系へ直接一般化できない理由と制限
