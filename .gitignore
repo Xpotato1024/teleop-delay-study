@@ -2,6 +2,8 @@
 *.asv
 *.m~
 octave-workspace
+*.slxc
+slprj/
 
 # Generated research artifacts
 results/*

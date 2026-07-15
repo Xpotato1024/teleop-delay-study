@@ -231,3 +231,27 @@ src/
 - 最小ジャーク乱数軌道の契約
 
 各判断を`research/log.md`へ追記する。
+
+## 13. Issue #2で成立させた基盤
+
+Issue #2では、上記の研究モデル全体のうち、決定論的な軌道生成と遅延を含まない最小plant接続までを実装した。
+
+```text
+src/+teleopdelay/
+├── +app/main.m
+├── +config/{default_config,validate_config}.m
+├── +timegrid/create.m
+├── +trajectory/{generate,circle,lissajous_1_2}.m
+└── +simulink/{model_paths,build_models,create_simulation_input,run_case}.m
+```
+
+MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行、出力schemaを担当する。Simulink側は次の2つのmodelを担当する。
+
+| model | interface |
+|---|---|
+| `models/plant/first_order_2d.slx` | `command_xy_m`（2要素、m）を受け、`position_xy_m`（2要素、m）を返す。`time_constant_s`をmodel workspace parameterとする。 |
+| `models/system/teleop_delay_system.slx` | MATLAB軌道を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、commandとpositionをDataset loggingする。 |
+
+top-level modelはplant内部のblockやstateへ依存しない。packet sampling、通信遅延、ZOH、CV、metrics、作図はこの基盤に含めない。
+
+実装済みの基盤検証は、package・model存在、旧source削除、builder、Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、logging、path復元、open model cleanup、`checkcode`、`smoke_test`である。軌道の解析値、周期性、微分一致、plant解析解、solver収束性は未検証とする。

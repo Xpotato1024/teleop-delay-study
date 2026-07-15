@@ -78,3 +78,13 @@
 - 未解決事項: なし。
 - 次の作業: 文書整合を確認し、PR #1を人間reviewへ回す。
 - 関連commit / PR: GitHub上の文書日本語化follow-up / draft PR #1。
+
+## 2026-07-15: Issue #2 MATLAB/Simulink基盤
+
+- 日付: 2026-07-15
+- 目的: MATLABとSimulinkの責務分離、決定論的軌道、Model Reference plant、再現可能なheadless entry pointを実装する。
+- 実施内容: `src/+teleopdelay/`へsourceを移行し、固定`dt`時間grid、円軌道、1:2 Lissajous軌道、一次遅れplant、top-level system model、`SimulationInput`、Dataset logging、smoke testを追加した。
+- 結果: MATLAB R2025b Update 5（`25.2.0.3177638`）とSimulinkでbuilder、Model Reference、model update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、path復元、open model cleanup、`checkcode`を確認した。
+- 判断: 今回は実行可能性と構造だけを受入対象とし、科学的な解析結果は記載しない。通信遅延、packet sampling、ZOH、CV、metricsは後続PRへ分離する。
+- 未実施: 軌道の解析値、周期性、微分一致、plant解析解、solver収束性、補償効果の検証。
+- 次の作業: 同じdraft PRのfollow-upで、解析fixture、interface境界、plant解析解、solver収束性を検証する。

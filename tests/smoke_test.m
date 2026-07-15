@@ -1,5 +1,5 @@
 function status = smoke_test()
-% smoke_test  MATLABスケルトンの最小限の構成・設定検証。
+% smoke_test  Issue #2の基盤構造と最小headless実行を検証する。
 
 testRoot = fileparts(fileparts(mfilename("fullpath")));
 srcDirectory = fullfile(testRoot, "src");
@@ -7,72 +7,103 @@ initialPath = path;
 cleanupPath = onCleanup(@() path(initialPath));
 addpath(srcDirectory);
 
-config = default_config();
-assert(isstruct(config), 'default_config must return a struct.');
-assert(validate_config(config), 'The default configuration must be valid.');
+config = teleopdelay.config.default_config();
+assert(teleopdelay.config.validate_config(config));
+assert(isfolder(fullfile(testRoot, "src", "+teleopdelay")));
+assert(~isfile(fullfile(testRoot, "src", "main.m")));
+assert(~isfile(fullfile(testRoot, "src", "default_config.m")));
+assert(~isfile(fullfile(testRoot, "src", "validate_config.m")));
 
 invalidConfig = config;
 invalidConfig.simulation.dt = -1;
 rejected = false;
 try
-    validate_config(invalidConfig);
+    teleopdelay.config.validate_config(invalidConfig);
 catch
     rejected = true;
 end
-assert(rejected, 'A negative simulation.dt must be rejected.');
+assert(rejected, "負のsimulation.dtを拒否しなければならない。");
 
-requiredDirectories = {
-    fullfile(testRoot, 'skills', 'matlab-engineering')
-    fullfile(testRoot, 'skills', 'teleop-delay-matlab')
-    fullfile(testRoot, 'docs')
-    fullfile(testRoot, 'docs', 'reports')
-    fullfile(testRoot, 'research')
-    fullfile(testRoot, 'src')
-    fullfile(testRoot, 'tests')
-    fullfile(testRoot, 'report')
-    fullfile(testRoot, 'report', 'figures')
-    fullfile(testRoot, 'results')
-    fullfile(testRoot, 'references')
-    };
-for pathIndex = 1:numel(requiredDirectories)
-    assert(isfolder(requiredDirectories{pathIndex}), 'Missing required directory: %s.', requiredDirectories{pathIndex});
+rejected = false;
+try
+    teleopdelay.timegrid.create(1.0, 0.03);
+catch errorInfo
+    rejected = strcmp(errorInfo.identifier, "teleopDelay:InvalidTimeGrid");
+end
+assert(rejected, "整数stepにならないduration / dtを拒否しなければならない。");
+
+paths = teleopdelay.simulink.model_paths(testRoot);
+teleopdelay.simulink.build_models(paths, config);
+assert(isfile(paths.plant));
+assert(isfile(paths.system));
+
+load_system(paths.plant);
+load_system(paths.system);
+cleanupModels = onCleanup(@() close_models(paths));
+modelBlock = [paths.systemModelName '/first_order_2d'];
+assert(strcmp(get_param(modelBlock, 'ModelName'), paths.plantModelName));
+set_param(paths.systemModelName, 'SimulationCommand', 'update');
+clear cleanupModels;
+close_models(paths);
+
+pathBeforeEntry = path;
+[status, output] = run_project();
+assert(status == 0);
+assert_output(output, "circle");
+assert(strcmp(pathBeforeEntry, path));
+assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.plantModelName));
+
+statusOnly = run_project();
+assert(statusOnly == 0);
+assert(strcmp(pathBeforeEntry, path));
+
+[statusAgain, outputAgain] = run_project();
+assert(statusAgain == 0);
+assert_output(outputAgain, "circle");
+assert(strcmp(pathBeforeEntry, path));
+
+for trajectoryType = ["circle", "lissajous_1_2"]
+    caseConfig = config;
+    caseConfig.trajectory.type = trajectoryType;
+    time_s = teleopdelay.timegrid.create( ...
+        caseConfig.simulation.duration, caseConfig.simulation.dt);
+    trajectory = teleopdelay.trajectory.generate(time_s, caseConfig.trajectory);
+    simulationInput = teleopdelay.simulink.create_simulation_input(paths, caseConfig, trajectory);
+    simulation = teleopdelay.simulink.run_case(simulationInput, paths, caseConfig);
+    assert_output(struct("config", caseConfig, "trajectory", trajectory, "simulation", simulation), trajectoryType);
+    assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.plantModelName));
 end
 
-requiredPaths = {
-    fullfile(testRoot, 'AGENTS.md')
-    fullfile(testRoot, 'README.md')
-    fullfile(testRoot, 'run_project.m')
-    fullfile(testRoot, 'skills', 'matlab-engineering', 'SKILL.md')
-    fullfile(testRoot, 'skills', 'matlab-engineering', 'REFERENCES.md')
-    fullfile(testRoot, 'skills', 'matlab-engineering', 'CHANGELOG.md')
-    fullfile(testRoot, 'skills', 'teleop-delay-matlab', 'SKILL.md')
-    fullfile(testRoot, 'skills', 'devkit-inspect-edit-verify', 'SKILL.md')
-    fullfile(testRoot, 'skills', 'devkit-git-drafts', 'SKILL.md')
-    fullfile(testRoot, 'skills', 'devkit-tree-explore', 'SKILL.md')
-    fullfile(testRoot, 'docs', 'architecture.md')
-    fullfile(testRoot, 'research', 'problem_statement.md')
-    fullfile(testRoot, 'src', 'main.m')
-    fullfile(testRoot, 'src', 'default_config.m')
-    fullfile(testRoot, 'src', 'validate_config.m')
-    fullfile(testRoot, 'tests', 'smoke_test.m')
-    fullfile(testRoot, 'report', 'final_report.md')
-    fullfile(testRoot, 'report', 'figures', '.gitkeep')
-    fullfile(testRoot, 'results', '.gitkeep')
-    fullfile(testRoot, 'references', 'README.md')
-    };
-for pathIndex = 1:numel(requiredPaths)
-    assert(isfile(requiredPaths{pathIndex}), 'Missing required file: %s.', requiredPaths{pathIndex});
-end
-
-% run_projectを一時的に見つけられるようにするが、テスト終了時には残さない。
-addpath(testRoot);
-pathBeforeRunProject = path;
-status = run_project();
-assert(status == 0, 'run_project must return status 0.');
-assert(strcmp(pathBeforeRunProject, path), 'run_project must restore the MATLAB path exactly.');
-
-% 正常終了時にも、この関数が追加したpathを呼出元へ残さないことを確認する。
 clear cleanupPath;
-assert(strcmp(initialPath, path), 'smoke_test must not leave MATLAB path changes.');
-fprintf('smoke_test passed.\n');
+assert(strcmp(initialPath, path));
+fprintf("smoke_test passed.\n");
+end
+
+function assert_output(output, trajectoryType)
+assert(isstruct(output) && all(isfield(output, ["config", "trajectory", "simulation"])));
+assert(strcmp(string(output.trajectory.type), string(trajectoryType)));
+trajectory = output.trajectory;
+simulation = output.simulation;
+N = numel(trajectory.time_s);
+assert(isequal(size(trajectory.time_s), [N, 1]));
+assert(isequal(size(trajectory.position_m), [N, 2]));
+assert(isequal(size(trajectory.velocity_mps), [N, 2]));
+assert(isequal(size(trajectory.acceleration_mps2), [N, 2]));
+assert(isequal(size(simulation.time_s), [N, 1]));
+assert(isequal(size(simulation.command_xy_m), [N, 2]));
+assert(isequal(size(simulation.position_xy_m), [N, 2]));
+assert(all(isfinite(trajectory.position_m), "all"));
+assert(all(isfinite(trajectory.velocity_mps), "all"));
+assert(all(isfinite(trajectory.acceleration_mps2), "all"));
+assert(all(isfinite(simulation.command_xy_m), "all"));
+assert(all(isfinite(simulation.position_xy_m), "all"));
+end
+
+function close_models(paths)
+if bdIsLoaded(paths.systemModelName)
+    close_system(paths.systemModelName, 0);
+end
+if bdIsLoaded(paths.plantModelName)
+    close_system(paths.plantModelName, 0);
+end
 end

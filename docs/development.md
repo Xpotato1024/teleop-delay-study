@@ -170,3 +170,18 @@ plot値を手作業で変更したり、生成図を見た目だけ似た別フ�
 ローカル移植ファイルをstageする前に`docs/migrated-assets-policy.md`へ従う。監査結果は`docs/reports/migrated-assets-audit.md`へ記録する。
 
 上流Skillと本研究固有の説明を混在させない。
+
+## 12. Issue #2基盤の検証
+
+MATLAB R2025b Update 5で、リポジトリルートから次を実行する。
+
+```powershell
+matlab -batch "status=run_project(); assert(status==0)"
+matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_test(); assert(status==0)"
+matlab -batch "files=dir(fullfile('src','+teleopdelay','**','*.m')); for k=1:numel(files); checkcode(fullfile(files(k).folder,files(k).name),'-id'); end"
+git diff --check
+```
+
+`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`を持ち、simulationは`time_s`、`command_xy_m`、`position_xy_m`を持つ。builderが生成する`.slx`は`models/`へ保存し、Simulinkの中間生成物は成果物として扱わない。
+
+このPRでは、解析値、周期性、解析微分との一致、plant解析解、solver収束性を検証しない。これらは同じdraft PRのfollow-upで実施する。
