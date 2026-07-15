@@ -1,0 +1,12 @@
+[encoding]
+# Ignore files and directories during encoding/tree operations.
+ignore = [".git", ".venv", "venv", "node_modules", "__pycache__", ".ruff_cache", "dist", "build", ".devkit-metrics.jsonl"]
+
+[git]
+# Prompt language for generated commit / PR text.
+lang = "ja"
+
+[metrics]
+# Enable local JSONL metrics collection when desired.
+enabled = false
+path = ".devkit-metrics.jsonl"

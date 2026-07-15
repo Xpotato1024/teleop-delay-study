@@ -23,3 +23,14 @@
 - 未解決事項: 決定論的軌道生成以降のモデル仕様と実験条件は後続PRで決定する。
 - 次の作業: human review後、決定論的軌道生成の仕様化へ進む。
 - 関連commit / PR: follow-up commit / draft PR #1。
+
+## 2026-07-15: documentation finalization and migrated-asset audit
+
+- 日付: 2026-07-15
+- 目的: 添付ドキュメントパッケージを正本としてbootstrapスケルトンを最終化し、ローカル移植候補を監査する。
+- 実施内容: `AGENTS.md`、`README.md`、設計・開発・ロードマップ、最終レポートをpayload版へ更新し、`CONTRIBUTING.md`、移植資産ポリシー、プロジェクト固有MATLAB Skill、bootstrap報告、移植資産監査報告を追加した。`research/log.md`の既存履歴は保持して追記した。
+- 結果: `devkit.toml`は現環境の`devkit-cli v0.1.6`、schema、コマンドを確認できたためAdoptとした。未追跡の一般Devkit Skill群とMATLAB Agentic Toolkitは取得元・revision・ライセンスまたはNOTICE・再配布条件を確定できずDeferとした。講義・PDF・プロンプト評価用Skill群は本研究と無関係なためRejectとした。
+- 判断: MathWorks由来と表示された未追跡MATLAB Toolkitを公式版とはみなさず、`skills/matlab/`へ導入しない。研究固有の規則は`skills/teleop-delay-matlab/SKILL.md`に分離する。
+- 未解決事項: Deferした移植候補の再配布条件と上流差分は、必要性と出典が確認できた場合に別途再監査する。
+- 次の作業: 次のPRでは決定論的軌道の契約と解析テストだけを実装する。
+- 関連commit / PR: `docs: finalize bootstrap and audit migrated tooling` / draft PR #1。
