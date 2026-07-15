@@ -1,142 +1,160 @@
-# One-week roadmap
+# 1週間の実施計画
 
-The schedule prioritizes a defensible final report over optional features. A stage is complete only when its acceptance criteria pass.
+任意機能よりも、検証可能な最終レポートを優先する。各段階は受入条件を満たした時点で完了とする。
 
-## Priorities
+## 優先度
 
-### P0 — required
+### P0 — 必須成果
 
-- finalized bootstrap and audited tooling;
-- deterministic circle and Lissajous trajectories;
-- sampling, fixed delay, ZOH, and constant-velocity prediction;
-- first-order plant;
-- validated metrics and reference systems;
-- deterministic parameter comparison;
-- report figures and final report;
-- reproducibility audit.
+- bootstrapとtooling監査の完了
+- 決定論的な円軌道とLissajous軌道
+- sampling、固定遅延、ZOH、定速度予測
+- 一次遅れplant
+- 検証済みの評価指標と参照系
+- 決定論的な条件比較
+- レポート用図と最終レポート
+- 再現性監査
 
-### P1 — add when P0 is stable
+### P1 — P0安定後に追加
 
-- point-to-point minimum-jerk random trajectories;
-- time-constant sensitivity;
-- dimensionless analysis using \(\omega L\), \(\omega T\), and \(\omega h_s\).
+- 通過点間の最小ジャーク乱数軌道
+- 時定数感度解析
+- ωL、ωT、ωh_sを用いた無次元解析
 
-### P2 — first scope cuts
+### P2 — 最初に削減する項目
 
-- bootstrap confidence intervals;
-- animation;
-- phase-lag diagnostics;
-- extra plotting variants.
+- bootstrap信頼区間
+- animation
+- 位相遅れ診断
+- 追加のplot形式
 
-## Day 1 — bootstrap finalization and trajectories
+## 1日目 — bootstrap最終化と軌道
 
-**Work**
-- audit migrated `devkit.toml` and `skills/`;
-- adopt only verified assets;
-- merge PR #1 after human review;
-- implement circle and Lissajous position/velocity generators in a new PR;
-- test periodicity, derivatives, amplitude, and shape.
+**作業**
 
-**Completion**
-- documentation is authoritative;
-- every migrated asset has a decision;
-- deterministic trajectories pass analytic MATLAB tests.
+- 移植した`devkit.toml`と`skills/`を監査する。
+- 検証済み資産だけを採用する。
+- 人間によるreview後にPR #1をmergeする。
+- 新しいPRで円軌道とLissajous軌道の位置・速度generatorを実装する。
+- 周期性、微分、振幅、shapeをテストする。
 
-**Cut first**
-- additional trajectory types.
+**完了条件**
 
-## Day 2 — packet sampling and reconstruction
+- 文書が正本として機能する。
+- 全移植資産に採否判断がある。
+- 決定論的軌道がMATLABの解析テストを通過する。
 
-**Work**
-- sample at fixed \(h_s\);
-- implement fixed delay;
-- select latest packet;
-- implement ZOH and CV;
-- define startup history.
+**最初に削減するもの**
 
-**Completion**
-- exact sample and arrival boundaries pass;
-- zero-delay and constant-velocity fixtures pass;
-- CV uses packet timestamp age.
+- 追加軌道形式
 
-**Cut first**
-- advanced diagnostics, never boundary tests.
+## 2日目 — packet samplingと指令再構成
 
-## Day 3 — plant and metrics
+**作業**
 
-**Work**
-- implement first-order plant;
-- choose and document integrator;
-- compare with an analytic case;
-- implement task and delay-induced metrics;
-- fix warm-up and evaluation window.
+- 固定周期\(h_s\)でsamplingする。
+- 固定通信遅延を実装する。
+- 利用可能な最新packetを選択する。
+- ZOHとCVを実装する。
+- 起動時のpacket履歴を定義する。
 
-**Completion**
-- analytic fixtures pass;
-- time-step halving meets the documented threshold;
-- zero-error and normalization guards pass.
+**完了条件**
 
-## Day 4 — deterministic factorial study
+- sampling時刻と到着時刻の厳密な境界テストが成功する。
+- ゼロ遅延と定速度fixtureが契約どおりに動作する。
+- CVがpacket timestampからの経過時間を使用する。
 
-**Work**
-- sweep method, delay, speed, and deterministic trajectory;
-- save config and results;
-- generate paths, error histories, and contour/heat maps;
-- inspect failed or non-finite cases.
+**最初に削減するもの**
 
-**Completion**
-- expected case count is verified;
-- all P0 cases regenerate from one command;
-- plots have units and traceable data.
+- 高度な診断機能。ただし境界テストは削減しない。
 
-**Cut first**
-- grid density, not comparison dimensions.
+## 3日目 — plantと評価指標
 
-## Day 5 — interpretation and P1
+**作業**
 
-**Work**
-- analyze \(\omega L\), and if needed \(\omega T\), \(\omega h_s\);
-- run small time-constant sensitivity;
-- add random minimum-jerk trajectories only if P0 is stable.
+- 一次遅れplantを実装する。
+- 数値積分法を選択して記録する。
+- 解析可能caseと比較する。
+- 総追従誤差と通信遅延起因誤差を実装する。
+- warm-upと評価区間を確定する。
 
-**Completion**
-- claims distinguish observations from hypotheses;
-- dimensionless collapse or its failure is documented;
-- random comparisons use common seeds.
+**完了条件**
 
-**Cut first**
-- random ensemble, bootstrap intervals, animation.
+- 解析または手計算fixtureが成功する。
+- 時間刻み半減で主評価指標の変化が記録済みthreshold以下になる。
+- ゼロ誤差と正規化guardが成功する。
 
-## Day 6 — report assembly
+## 4日目 — 決定論的な完全要因実験
 
-**Work**
-- complete purpose, model, conditions, program, results, discussion;
-- number equations, figures, and tables;
-- connect each claim to verified output or reference;
-- state limitations and purpose achievement.
+**作業**
 
-**Completion**
-- no placeholder result remains;
-- every figure regenerates;
-- references are verified and cited.
+- 方式、遅延、速度、決定論的軌道をsweepする。
+- 設定と結果を保存する。
+- 代表軌道、誤差時系列、contourまたはheat mapを生成する。
+- 失敗caseと非有限値を確認する。
 
-## Day 7 — reproducibility audit
+**完了条件**
 
-**Work**
-- clone or clean the repository;
-- run complete P0 workflow;
-- compare regenerated artifacts;
-- audit units, labels, numbering, links, bibliography;
-- confirm no secret or irrelevant artifact is committed.
+- 予定case数を検証する。
+- 一つのコマンドで全P0条件を再生成できる。
+- 図にunitがあり、元データを追跡できる。
 
-**Completion**
-- clean-workspace regeneration succeeds;
-- final report matches code and figures;
-- unresolved limitations are explicit.
+**最初に削減するもの**
 
-## Gate rules
+- grid密度。比較軸そのものは削減しない。
 
-- Do not start random trajectories before deterministic end-to-end metrics work.
-- Do not write result prose before regeneration is stable.
-- Do not increase model fidelity if it obscures the delay question.
-- When behind schedule, remove P2, then P1; never remove P0 validation.
+## 5日目 — 解釈とP1
+
+**作業**
+
+- ωLを分析し、必要に応じてωTとωh_sも確認する。
+- 小規模な時定数感度解析を行う。
+- P0が安定した場合だけ最小ジャーク乱数軌道を追加する。
+
+**完了条件**
+
+- 観測結果と仮説を区別して記述する。
+- 無次元量で整理できるか、できないかを記録する。
+- 乱数比較では共通seedを使用する。
+
+**最初に削減するもの**
+
+- 乱数ensemble、bootstrap信頼区間、animation
+
+## 6日目 — レポート作成
+
+**作業**
+
+- 目的、モデル、条件、program、結果、考察を完成させる。
+- 式、図、表に番号を付ける。
+- 各主張を検証済み出力または参考文献へ接続する。
+- 制限と目的達成度を記述する。
+
+**完了条件**
+
+- 結果欄にplaceholderが残っていない。
+- 全図を再生成できる。
+- 参考文献を確認し、本文から引用している。
+
+## 7日目 — 再現性・提出監査
+
+**作業**
+
+- cleanなcloneまたはworkspaceを用意する。
+- P0 workflow全体を実行する。
+- 再生成した成果物を比較する。
+- unit、label、番号、link、参考文献を監査する。
+- secretや不要な生成物がcommitされていないことを確認する。
+
+**完了条件**
+
+- clean workspaceで再生成に成功する。
+- 最終レポートが追跡済みコード・図と一致する。
+- 未解決の制限が明記されている。
+
+## Gate規則
+
+- 決定論的なend-to-end評価指標が動く前に乱数軌道へ進まない。
+- 結果再生成が安定する前に結果本文を書かない。
+- 遅延補償の問いを不明瞭にするmodel fidelity向上を行わない。
+- 遅延時はP2、次にP1を削減し、P0検証は削減しない。
