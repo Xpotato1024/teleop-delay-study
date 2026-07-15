@@ -56,3 +56,14 @@
 - Unresolved: upstream MATLAB provenance, revision, complete license/NOTICE, and redistribution terms remain unverified; the reviewed Toolkit is archived reference-only.
 - Next work: human review of the Skill boundaries and then the next scientific implementation PR.
 - Related commit / PR: `chore: adopt first-party skills and add MATLAB engineering guide` / draft PR #1.
+
+## 2026-07-15: Devkit source-maintenance safety follow-up
+
+- Date: 2026-07-15
+- Purpose: prevent the first-party Devkit Skills from applying Devkit-source maintenance operations to `teleop-delay-study`.
+- Work: separated ordinary CLI routing from conditional Devkit source maintenance; corrected root-relative Python command examples; added source-marker, path-overlap, and dry-run guards to the sync fallback; made the release checker report missing source files without traceback; updated the audit and bootstrap report.
+- Result: `devkit-project-bootstrap` prefers the Devkit CLI and treats its Python script as a guarded fallback. `devkit-release-maintainer` is restricted to a Devkit source checkout with explicit release-maintenance intent. No MATLAB or scientific implementation changed.
+- Decision: source-maintenance Skills remain tracked first-party assets, but are never part of normal project release/bootstrap routing.
+- Unresolved: a real external Devkit source checkout was not used for a write test; fake-source dry-run and no-write checks cover the safe validation path.
+- Next work: human review of the routing boundary, then scientific implementation only in a separate PR.
+- Related commit / PR: `fix: guard Devkit source-maintenance skills` / draft PR #1.

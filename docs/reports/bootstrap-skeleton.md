@@ -105,6 +105,10 @@ Completed for this follow-up:
 
 The MATLAB engineering Skill and first-party Devkit Skills were audited and added after this report was first written. The MATLAB Agentic Toolkit and unrelated local Skills were moved to the external archive recorded in `docs/reports/migrated-assets-audit.md`.
 
+## Final Skill safety follow-up
+
+The first-party Devkit Skills are now split between ordinary CLI use in this repository and conditional maintenance of a separate Devkit source checkout. Release maintenance requires the Devkit source markers and an explicit user request. The project-bootstrap Python sync script is a guarded fallback with explicit source-root selection and dry-run support; `devkit bootstrap sync-skills` remains the normal CLI path. No scientific implementation was added.
+
 ## Unimplemented scientific scope
 
 At the end of bootstrap:

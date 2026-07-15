@@ -63,7 +63,7 @@ Each PR synchronizes:
 
 ## 5. MATLAB coding expectations
 
-Project-specific rules are in `skills/teleop-delay-matlab/SKILL.md`. If a verified upstream MathWorks skill is adopted, read it first for general practice, but project contracts take precedence.
+Project-specific rules are in `skills/teleop-delay-matlab/SKILL.md`. The normal generic MATLAB source is `skills/matlab-engineering/SKILL.md`; an upstream MathWorks Skill is not part of normal routing and may be considered only as a separately verified future candidate. Project contracts take precedence if one is ever adopted.
 
 Core expectations:
 
@@ -86,7 +86,7 @@ For MATLAB work, read the generic contract first, then the study contract:
 
 Update `matlab-engineering` in the same PR when a failure, verified command, or repeated workflow generalizes to other MATLAB projects. Keep communication-delay research rules in `teleop-delay-matlab`, one-off details in code comments or the PR report, research decisions in `research/log.md`, and evidence plus validation in `skills/matlab-engineering/CHANGELOG.md`. Do not promote a single local incident or duplicate an existing rule; keep the Skill concise and rerun affected checks.
 
-For Devkit work, read only the task-matched first-party Skill: tree exploration, encoding hygiene, inspect/edit/verify, Git drafts, documentation, metrics, project bootstrap, or release maintenance.
+For ordinary Devkit use in this repository, read only the task-matched first-party Skill: tree exploration, encoding hygiene, inspect/edit/verify, Git drafts, documentation, metrics, or project bootstrap CLI usage. Keep `devkit-release-maintainer` outside normal routing. Use it only when the target is a Devkit source checkout containing `.github/workflows/release.yml`, `rust/crates/devkit-cli`, and `rust/crates/devkit-installer`, and the user explicitly requests Devkit release maintenance. Do not use it for `teleop-delay-study` release work. The Python sync script bundled with `devkit-project-bootstrap` is likewise a guarded Devkit-source maintenance fallback; prefer the Devkit CLI for this repository.
 
 ## 7. Validation levels
 

@@ -5,7 +5,7 @@ description: Use when an AI agent needs to install devkit into a local environme
 
 # devkit project bootstrap
 
-Use `devkit` when the task is about initial local setup.
+Use the installed `devkit` CLI when the task is about initial local setup in this repository. The bundled Python script is a conditional maintenance fallback for a Devkit source checkout, not the normal way to synchronize this repository's `skills/` directory.
 
 ## When to use
 
@@ -29,8 +29,10 @@ Use `devkit` when the task is about initial local setup.
    - `devkit config init --help` if the config path or overwrite behavior matters
    - `devkit encoding check devkit.toml --brief` when a config file was written
 4. When the task is specifically to sync repo-bundled skills into the local Codex store:
-   - prefer `devkit bootstrap sync-skills` for workspace-local copies
-   - use `uv run python scripts/sync_repo_skills_to_codex.py` only when the destination must be the Codex skill store
+   - prefer `devkit bootstrap sync-skills`;
+   - use the bundled script only from a Devkit source checkout, with an explicit source root:
+     `uv run python skills/devkit-project-bootstrap/scripts/sync_repo_skills_to_codex.py --repo-root <devkit-source-repo>`;
+   - pass `--dry-run` first when reviewing the source and destination.
 
 ## Rules
 
@@ -38,6 +40,10 @@ Use `devkit` when the task is about initial local setup.
 - Keep setup instructions generic and cross-platform.
 - Prefer the CLI flow over ad hoc manual file creation.
 - Keep installer behavior minimal; optional workspace bootstrapping belongs under `devkit bootstrap`.
+
+## Source-maintenance fallback guard
+
+The Python fallback is for maintaining a Devkit source repository whose root contains both `SKILLs/` and `rust/`. It must not be used to synchronize `teleop-delay-study/skills/` directly. It refuses a missing source marker and refuses a source/destination path that is identical or nested inside the other. Because matching destination skill directories are replaced, inspect the explicit destination and run `--dry-run` before a real copy. The normal project path remains `devkit bootstrap sync-skills`.
 
 ## Reference
 

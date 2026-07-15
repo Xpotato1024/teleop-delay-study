@@ -95,10 +95,11 @@ Adopted `skills/devkit-*` directories are first-party repository skills. Read on
 - Git and draft PRs: `devkit-git-drafts`;
 - documentation: `devkit-doc-edit`;
 - metrics: `devkit-metrics-review`;
-- bootstrap: `devkit-project-bootstrap`;
-- release: `devkit-release-maintainer`.
+- Devkit CLIの導入・設定: `devkit-project-bootstrap`（CLI利用部分）。
 
 Do not read every Devkit skill by default.
+
+Devkit本体のsource-maintenance Skillは通常routingから分離する。`devkit-release-maintainer`を使えるのは、作業対象がDevkit本体のsource checkoutであり、`.github/workflows/release.yml`、`rust/crates/devkit-cli`、`rust/crates/devkit-installer`が存在し、かつユーザーがDevkit本体のrelease保守を依頼した場合だけである。`teleop-delay-study`自身のreleaseやbootstrapには使用しない。`devkit-project-bootstrap`のPython同期scriptもDevkit本体source checkout向けの保守fallbackであり、通常はDevkit CLIを使う。
 
 ## 7. Skill evolution
 

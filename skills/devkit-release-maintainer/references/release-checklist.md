@@ -12,7 +12,7 @@ Use this reference when actively preparing or validating a release.
    - `DEVKIT_RELEASE_VERSION=<tag> cargo run -p devkit-cli -- -V`
    - `DEVKIT_RELEASE_VERSION=<tag> cargo run -p devkit-installer --bin devkit-installer -- --version`
 4. Run the static checker when release-version wiring changed:
-   - `uv run python scripts/check_release_version_alignment.py`
+   - `uv run python skills/devkit-release-maintainer/scripts/check_release_version_alignment.py --repo-root <devkit-source-repo>`
 
 ## Windows packaging checks
 

@@ -5,7 +5,7 @@ description: Use when an AI agent needs to prepare, verify, or debug devkit rele
 
 # devkit release maintainer
 
-Use this skill for release-oriented work on `devkit` itself.
+Use this skill only for release-oriented work on the `devkit` source repository itself. Do not use it for `teleop-delay-study` release work or ordinary Devkit CLI usage.
 
 ## When to use
 
@@ -16,26 +16,32 @@ Use this skill for release-oriented work on `devkit` itself.
 
 ## Workflow
 
-1. Confirm release-facing metadata.
+1. Confirm that the target is a Devkit source checkout before any command:
+   - `.github/workflows/release.yml` exists;
+   - `rust/crates/devkit-cli` exists;
+   - `rust/crates/devkit-installer` exists.
+   If these markers are absent, stop and report the missing paths.
+2. Confirm release-facing metadata.
    - Check `README.md`, `docs/release/`, and `AGENTS.md`.
    - Verify user-visible version paths such as `devkit -V`, installer `--version`, and manifest version fields.
-2. Verify local build behavior.
+3. Verify local build behavior.
    - `cargo test -p devkit-cli -p devkit-installer`
    - `cargo run -p devkit-cli -- -V`
    - For release-injected behavior, build or run with `DEVKIT_RELEASE_VERSION=<tag>`
-3. Verify installer and packaging flow when relevant.
+4. Verify installer and packaging flow when relevant.
    - Build `devkit-cli`
    - Build `devkit-cleanup-helper`
    - Build `devkit-installer` with embedded payload env vars
-4. Only then proceed to tag / release publication.
-5. Use the bundled checker when the version-alignment path itself needs a deterministic audit.
-   - `uv run python scripts/check_release_version_alignment.py`
+5. Only then proceed to tag / release publication.
+6. Use the bundled checker when the version-alignment path itself needs a deterministic audit:
+   - `uv run python skills/devkit-release-maintainer/scripts/check_release_version_alignment.py --repo-root <devkit-source-repo>`
 
 ## Rules
 
 - Treat release tags as the source of truth for user-facing release version output.
 - Verify both fallback local behavior and tagged-release behavior when version metadata is touched.
 - Do not assume crate `version` fields alone define the shipped release version.
+- A `teleop-delay-study` root is a negative case for this Skill, not a release target.
 
 ## Reference
 
