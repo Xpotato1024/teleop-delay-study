@@ -24,7 +24,7 @@
 - 次の作業: human review後、決定論的軌道生成の仕様化へ進む。
 - 関連commit / PR: follow-up commit / draft PR #1。
 
-## 2026-07-15: documentation finalization and migrated-asset audit
+## 2026-07-15: 文書最終化と移植資産監査
 
 - 日付: 2026-07-15
 - 目的: 添付ドキュメントパッケージを正本としてbootstrapスケルトンを最終化し、ローカル移植候補を監査する。
@@ -35,7 +35,7 @@
 - 次の作業: 次のPRでは決定論的軌道の契約と解析テストだけを実装する。
 - 関連commit / PR: `docs: finalize bootstrap and audit migrated tooling` / draft PR #1。
 
-## 2026-07-15: final bootstrap audit follow-up
+## 2026-07-15: 最終bootstrap監査follow-up
 
 - 日付: 2026-07-15
 - 目的: 未検証MATLAB Skill placeholderの重複を除去し、最終tracked structureとDevkit成果物管理を正確にする。
@@ -46,24 +46,35 @@
 - 次の作業: human review後、決定論的軌道の契約と解析テストだけを実装する。
 - 関連commit / PR: `fix: remove ambiguous MATLAB skill placeholder` / draft PR #1。
 
-## 2026-07-15: first-party Skills adoption and archive follow-up
+## 2026-07-15: first-party Skill採用と退避
 
-- Date: 2026-07-15
-- Purpose: finalize the development Skill structure for the bootstrap PR without implementing scientific models.
-- Work: adopted the user-authored `skills/devkit-*` contracts; authored `skills/matlab-engineering/` as a generic MATLAB guide; kept `skills/teleop-delay-matlab/SKILL.md` research-specific; reviewed the local MATLAB Agentic Toolkit and recorded design references; moved reference-only and unrelated Skills to the external archive with a SHA-256 manifest; updated routing and evolution policy.
-- Result: the tracked Skill structure now separates first-party Devkit, generic MATLAB engineering, and research-specific MATLAB guidance. No trajectory, communication, plant, metric, experiment, result, or figure implementation was added.
-- Decision: future MATLAB Skill changes require a verified generalizable failure, command, or repeated workflow; study-specific decisions remain in the project Skill or research log.
-- Unresolved: upstream MATLAB provenance, revision, complete license/NOTICE, and redistribution terms remain unverified; the reviewed Toolkit is archived reference-only.
-- Next work: human review of the Skill boundaries and then the next scientific implementation PR.
-- Related commit / PR: `chore: adopt first-party skills and add MATLAB engineering guide` / draft PR #1.
+- 日付: 2026-07-15
+- 目的: 科学modelを実装せず、bootstrap PRの開発Skill構造を最終化する。
+- 実施内容: ユーザー作成の`skills/devkit-*`を採用し、汎用MATLAB guideとして`skills/matlab-engineering/`を内製した。`skills/teleop-delay-matlab/SKILL.md`は研究固有のまま維持した。ローカルMATLAB Agentic Toolkitを設計参考として確認し、参照専用・不要SkillをSHA-256 manifest付きのrepository外archiveへ移動した。routingとSkill継続改善方針を更新した。
+- 結果: tracked Skillは、first-party Devkit、汎用MATLAB engineering、研究固有MATLAB guidanceの3層へ分離された。軌道、通信、plant、評価指標、実験、結果、図は追加していない。
+- 判断: 今後のMATLAB Skill変更には、検証済みで一般化可能な失敗、command、反復workflowの根拠を必須とする。研究固有の判断は研究固有Skillまたは研究ログへ記録する。
+- 未解決事項: 参照したMATLAB Toolkitのupstream、revision、完全なLICENSE/NOTICE、再配布条件は未確認であり、reference-only archiveのままとする。
+- 次の作業: Skill境界を人間が確認した後、別PRで科学実装へ進む。
+- 関連commit / PR: `chore: adopt first-party skills and add MATLAB engineering guide` / draft PR #1。
 
-## 2026-07-15: Devkit source-maintenance safety follow-up
+## 2026-07-15: Devkit source保守の安全化
 
-- Date: 2026-07-15
-- Purpose: prevent the first-party Devkit Skills from applying Devkit-source maintenance operations to `teleop-delay-study`.
-- Work: separated ordinary CLI routing from conditional Devkit source maintenance; corrected root-relative Python command examples; added source-marker, path-overlap, and dry-run guards to the sync fallback; made the release checker report missing source files without traceback; updated the audit and bootstrap report.
-- Result: `devkit-project-bootstrap` prefers the Devkit CLI and treats its Python script as a guarded fallback. `devkit-release-maintainer` is restricted to a Devkit source checkout with explicit release-maintenance intent. No MATLAB or scientific implementation changed.
-- Decision: source-maintenance Skills remain tracked first-party assets, but are never part of normal project release/bootstrap routing.
-- Unresolved: a real external Devkit source checkout was not used for a write test; fake-source dry-run and no-write checks cover the safe validation path.
-- Next work: human review of the routing boundary, then scientific implementation only in a separate PR.
-- Related commit / PR: `fix: guard Devkit source-maintenance skills` / draft PR #1.
+- 日付: 2026-07-15
+- 目的: first-party Devkit SkillがDevkit本体向け保守操作を`teleop-delay-study`へ誤適用することを防ぐ。
+- 実施内容: 通常CLI routingと条件付きDevkit source保守を分離した。誤っていたroot-relative Python commandを修正し、同期fallbackへsource marker、path overlap、dry-run guardを追加した。release checkerはtracebackではなく不足fileを列挙して終了するよう修正し、監査・bootstrap報告を更新した。
+- 結果: `devkit-project-bootstrap`はDevkit CLIを優先し、Python scriptをguard付きfallbackとして扱う。`devkit-release-maintainer`は明示的なrelease保守依頼を伴うDevkit source checkoutだけに制限した。MATLABまたは科学実装は変更していない。
+- 判断: source保守Skillはfirst-party資産として追跡するが、通常のproject release/bootstrap routingには含めない。
+- 未解決事項: 実在する外部Devkit source checkoutへのwrite testは行っていない。fake sourceとno-write検証で安全経路を確認した。
+- 次の作業: routing境界を人間が確認した後、別PRで科学実装へ進む。
+- 関連commit / PR: `fix: guard Devkit source-maintenance skills` / draft PR #1。
+
+## 2026-07-15: 人間向け文書の日本語統一
+
+- 日付: 2026-07-15
+- 目的: 授業提出物とrepository利用者が読む文書を日本語へ統一し、後続PRで英語へ戻ることを防ぐ。
+- 実施内容: `AGENTS.md`へ言語方針を追加し、README、CONTRIBUTING、設計・開発・roadmap・監査文書、研究課題、研究ログを日本語化した。Skillはエージェント向け契約であるため、翻訳対象から除外した。
+- 結果: 人間向け文書、Issue、PR、実装報告は日本語、コード識別子・CLI・Skillは必要に応じて英語という境界を明文化した。科学実装と数値結果は変更していない。
+- 判断: 後続作業でも人間向け成果物は日本語で作成する。
+- 未解決事項: なし。
+- 次の作業: 文書整合を確認し、PR #1を人間reviewへ回す。
+- 関連commit / PR: `docs: 人間向け文書を日本語化` / draft PR #1。
