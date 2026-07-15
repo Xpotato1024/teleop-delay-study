@@ -32,4 +32,9 @@ MATLABとSimulinkの責務を分離し、決定論的軌道を外部入力とし
 
 ## GitHub状態
 
-Issue #2を継続し、`codex/2-matlab-simulink-implementation`を使用する。draft PR作成後に番号とcommit SHAを追記する。IssueはOPENのままとし、`Closes #2`、Ready化、merge、Issue closeは行わない。
+- Issue: #2 OPEN
+- branch: `codex/2-matlab-simulink-implementation`
+- commit: `466d204cc81c72259869656fb2c3bc28a3472c28`
+- draft PR: #4
+
+PR本文では`Refs #2`を使用した。`Closes #2`への変更、Ready化、merge、Issue closeは行わない。

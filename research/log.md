@@ -88,3 +88,4 @@
 - 判断: 今回は実行可能性と構造だけを受入対象とし、科学的な解析結果は記載しない。通信遅延、packet sampling、ZOH、CV、metricsは後続PRへ分離する。
 - 未実施: 軌道の解析値、周期性、微分一致、plant解析解、solver収束性、補償効果の検証。
 - 次の作業: 同じdraft PRのfollow-upで、解析fixture、interface境界、plant解析解、solver収束性を検証する。
+- 関連commit / PR: `466d204cc81c72259869656fb2c3bc28a3472c28` / draft PR #4。Issue #2はOPEN。
