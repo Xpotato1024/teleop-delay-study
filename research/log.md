@@ -77,4 +77,4 @@
 - 判断: 後続作業でも人間向け成果物は日本語で作成する。
 - 未解決事項: なし。
 - 次の作業: 文書整合を確認し、PR #1を人間reviewへ回す。
-- 関連commit / PR: `docs: 人間向け文書を日本語化` / draft PR #1。
+- 関連commit / PR: GitHub上の文書日本語化follow-up / draft PR #1。
