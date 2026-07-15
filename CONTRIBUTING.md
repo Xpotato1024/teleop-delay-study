@@ -1,90 +1,92 @@
-# Contributing
+# 開発参加ガイド
 
-This is a one-week individual research project. The workflow is lightweight, but scientific traceability is mandatory.
+本リポジトリは、1週間で完結する個人研究プロジェクトです。運用は軽量に保ちますが、科学的な追跡可能性は必須です。
 
-## Workflow
+## 作業手順
 
-1. Start from the latest `main`.
-2. Create one branch for one coherent work unit.
-3. Implement the smallest complete change.
-4. Add or update executable tests.
-5. Append the research decision or condition change to `research/log.md`.
-6. Add or update one implementation report under `docs/reports/`.
-7. Run required MATLAB and static checks.
-8. Open a draft PR, review it, then mark it ready.
-9. Merge only after human review.
+1. 最新の`main`から開始する。
+2. 一つの一貫した作業単位につき一つのbranchを作成する。
+3. 最小の完全な変更を実装する。
+4. 実行可能なテストを追加または更新する。
+5. 研究判断や条件変更を`research/log.md`へ追記する。
+6. `docs/reports/`以下に実装報告を追加または更新する。
+7. 必要なMATLAB検証と静的確認を実行する。
+8. draft PRを作成し、確認後にReady化する。
+9. 人間によるreview後にのみmergeする。
 
-Direct commits to `main` are prohibited.
+`main`への直接commitは禁止します。
 
-## Preferred PR sequence
+## 推奨するPR順序
 
-1. bootstrap and tooling
-2. deterministic trajectories
-3. packet sampling, delay, ZOH, and constant-velocity prediction
-4. first-order plant and numerical integration
-5. metrics and reference systems
-6. deterministic factorial experiment
-7. optional random trajectories and sensitivity
-8. final report and reproducibility audit
+1. bootstrapとtooling
+2. 決定論的軌道
+3. packet sampling、通信遅延、ZOH、定速度予測
+4. 一次遅れplantと数値積分
+5. 評価指標と参照系
+6. 決定論的な完全要因実験
+7. 任意の乱数軌道と感度解析
+8. 最終レポートと再現性監査
 
-## Commit messages
+## コミットメッセージ
 
-Use concise prefixes where practical: `docs:`, `test:`, `feat:`, `fix:`, `chore:`.
+可能な範囲で、`docs:`、`test:`、`feat:`、`fix:`、`chore:`等の簡潔な接頭辞を用い、本文は日本語で記述します。
 
-## MATLAB validation
+## MATLAB検証
 
-Use commands in `docs/development.md` and report the exact MATLAB version. Static review or Octave does not count as MATLAB execution.
+`docs/development.md`に記載したコマンドを使用し、実際に使用したMATLAB versionを報告します。静的確認やOctave実行をMATLAB実行の代替にしません。
 
-Every MATLAB PR confirms:
+各MATLAB PRで次を確認します。
 
-- status code;
-- no unexpected path changes;
-- finite outputs and expected shapes;
-- relevant tests;
-- `git diff --check`.
+- status code
+- 意図しないpath変更がないこと
+- 出力が有限で、想定shapeであること
+- 変更内容に対応するテスト
+- `git diff --check`
 
-Numerical-model PRs also require an analytic or hand-calculated fixture and a time-step convergence check.
+数値モデルを変更するPRでは、解析解または手計算fixtureと、時間刻み収束性の確認も必要です。
 
 ## Skills
 
-The `skills/devkit-*` directories are first-party Devkit operation contracts. Read only the task-matched Skill. `skills/matlab-engineering/` is the generic, project-authored MATLAB contract; `skills/teleop-delay-matlab/` contains this study's research-specific rules. Do not mix the two.
+`skills/devkit-*`はfirst-partyのDevkit操作契約です。タスクに対応するSkillだけを読みます。`skills/matlab-engineering/`は内製の汎用MATLAB契約、`skills/teleop-delay-matlab/`は本研究固有の規則です。両者を混在させません。
 
-Improve the generic MATLAB Skill only when a verified, generalizable failure or repeated workflow supports a concise rule. Keep study-specific decisions in the project Skill, one-off details in the PR report or code comments, and record evidence plus validation in `skills/matlab-engineering/CHANGELOG.md`.
+汎用MATLAB Skillは、検証済みで一般化可能な失敗または反復手順が、簡潔な規則として成立する場合だけ改善します。研究固有の判断は研究固有Skillへ、単発の詳細はPR報告またはコードコメントへ記録し、汎用Skill変更の根拠と検証は`skills/matlab-engineering/CHANGELOG.md`へ追記します。
 
-## Documentation synchronization
+## 文書の同期
 
-These must agree:
+次の内容を一致させます。
 
 - `research/problem_statement.md`
 - `docs/architecture.md`
-- code and tests
+- コードとテスト
 - `research/log.md`
 - `docs/reports/`
 - `report/final_report.md`
 
-Do not rewrite prior log entries; append a dated entry.
+過去の研究ログを後から書き換えず、日付付きで追記します。
 
-## Generated artifacts
+人間向け文書、Issue、PR、実装報告は日本語で記述します。Skill、コード識別子、CLIオプション等は、用途上必要であれば英語のままで構いません。
 
-- `results/`: intermediate generated data; normally ignored
-- `report/figures/`: final regenerated figures used in the report; tracked
+## 生成物
 
-Do not commit temporary MATLAB files or manually altered result copies.
+- `results/`: 中間生成データ。通常はGit追跡しない。
+- `report/figures/`: 最終レポートで使用する再生成可能な図。Git追跡する。
 
-## Migrated assets
+MATLABの一時ファイルや、手作業で変更した結果の複製をcommitしません。
 
-Audit copied files under `docs/migrated-assets-policy.md` before staging. Unknown provenance, license, secrets, absolute paths, and stale project-specific instructions are blockers.
+## 移植資産
 
-Upstream MATLAB skills and project-specific rules must remain separate.
+他プロジェクトから移したファイルは、stage前に`docs/migrated-assets-policy.md`に従って監査します。出典、license、秘密情報、絶対path、古いプロジェクト固有指示が不明な場合は導入を停止します。
 
-## Merge checklist
+上流MATLAB Skillと研究固有規則は分離したまま維持します。
 
-- [ ] PR scope is coherent
-- [ ] source-of-truth files are synchronized
-- [ ] MATLAB commands and results are recorded
-- [ ] tests cover the changed contract
-- [ ] no invented result or citation exists
-- [ ] no unreviewed migrated asset was staged
-- [ ] generated results are reproducible
-- [ ] `git diff --check` passes
-- [ ] PR is human-reviewed
+## Mergeチェックリスト
+
+- [ ] PRの範囲が一貫している
+- [ ] 正本となる文書が同期している
+- [ ] MATLABコマンドと結果を記録した
+- [ ] テストが変更契約を網羅している
+- [ ] 捏造した結果または引用がない
+- [ ] 未監査の移植資産をstageしていない
+- [ ] 生成結果を再現できる
+- [ ] `git diff --check`が成功する
+- [ ] 人間によるreviewが完了している
