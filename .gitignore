@@ -1,0 +1,14 @@
+# MATLAB / Octave
+*.asv
+*.m~
+octave-workspace
+
+# Generated research artifacts
+results/*
+!results/.gitkeep
+report/figures/*
+!report/figures/.gitkeep
+
+# Operating-system files
+.DS_Store
+Thumbs.db
