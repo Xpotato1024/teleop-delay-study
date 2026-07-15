@@ -89,3 +89,16 @@
 - 未実施: 軌道の解析値、周期性、微分一致、plant解析解、solver収束性、補償効果の検証。
 - 次の作業: 同じdraft PRのfollow-upで、解析fixture、interface境界、plant解析解、solver収束性を検証する。
 - 関連commit / PR: `466d204cc81c72259869656fb2c3bc28a3472c28` / draft PR #4。Issue #2はOPEN。
+
+## 2026-07-15: Issue #2 MATLAB/Simulink検証follow-up
+
+- 日付: 2026-07-15
+- 目的: model lifecycleと実行時parameterを分離し、決定論的軌道とModel Reference plantの解析検証を追加する。
+- 判断: `build_models`は明示的な保守操作とし、`run_project`は追跡済み`.slx`を再生成・保存しない。modelが存在しない場合は自動生成せず`teleopDelay:MissingModel`で停止する。
+- 実装: `time_constant_s`をreferenced modelのmodel argumentとして公開し、`SimulationInput.setVariable`へ`Workspace='teleop_delay_system'`を指定してcaseごとに渡した。base workspace依存は作らない。
+- interface: `command_xy_m`と`position_xy_m`をdimension 2、double、unit mとして固定した。Dataset loggingはelement名を完全一致で検証し、順序に依存しない取得とした。
+- 検証: unit 12件、model 6件、integration 4件、smoke test、checkcode、model load/update、read-only相当model fileでのruntimeを通過した。
+- 数値受入: `T=0.2 s`、定値入力`[1, 0.5]`、duration `0.2 s`で、`dt=0.01 s`の解析解最大誤差は`1.9976097331841913e-08`、`dt=0.005 s`は`1.2227420187471694e-09`。解析解thresholdは`1e-5`とし、step半減で誤差が減少することを確認した。軌道の有限差分thresholdは式の中心差分誤差とdouble丸めを根拠にcircle `1e-7`、Lissajous速度`2e-7`、加速度`5e-7`とした。
+- 環境: MATLAB R2025b Update 5、version `25.2.0.3177638`、Simulink同環境。
+- 未実施: 通信遅延、packet sampling、ZOH、CV、metrics、補償効果、実験結果の評価。
+- 次の作業: follow-up commitをdraft PR #4へpushし、人間reviewを待つ。Issue #2はOPENのままとする。
