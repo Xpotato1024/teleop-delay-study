@@ -5,8 +5,20 @@ end
 function testRunProjectFormsAndModelHash(testCase)
 root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
+close_models(paths);
 beforePlant = sha256_file(paths.plant);
 beforeSystem = sha256_file(paths.system);
+pathBefore = path;
+addpath(root);
+cleanupPath = onCleanup(@() path(pathBefore));
+run_project();
+clear cleanupPath;
+verifyEqual(testCase, path, pathBefore);
+verifyFalse(testCase, bdIsLoaded(paths.plantModelName));
+verifyFalse(testCase, bdIsLoaded(paths.systemModelName));
+verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
+verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
+verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 pathBefore = path;
 addpath(root);
 cleanupPath = onCleanup(@() path(pathBefore));

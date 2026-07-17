@@ -46,9 +46,11 @@ configの`trajectory.type`と`simulation.solver`はnonmissing string scalarだ�
 
 ## MATLAB unit validation
 
+- config: 3 tests。string scalar型契約、完全一致、missing field、default configからdispatcherへの接続を確認した。
 - time grid: 4 tests。endpoint、column shape、zero duration、非整数step、zero/negative/NaN/Inf、不整合を隠すendpoint上書きの拒否を確認した。
-- config/time grid: 7 tests。configのstring scalar型契約、完全一致、missing field、default configからdispatcherへの接続、endpoint、column shape、非整数step、不正値を確認した。
 - trajectory: 8 tests。circleとLissajousの`t=0`、周期、shape、finite値、解析微分、有限差分、dispatcherのtype/time validationを確認した。
+
+unit test合計は15件である。
 
 有限差分の許容値は、中心差分の打切り誤差とdoubleの丸め誤差を考慮した。circleは速度・加速度`1e-7`、Lissajousは速度`2e-7`・加速度`5e-7`とした。
 
@@ -66,7 +68,7 @@ x(t) = u + (x0 - u) exp(-t / T)
 
 ## integration validation
 
-integration test 4件を通過した。`run_project()`三形式、circle/Lissajous output schema、named logging、missing modelの明示的拒否、read-only相当model fileでのruntime、model hash不変、base workspace非依存、path完全復元、test順序非依存を確認した。smoke testは最小起動確認に留め、解析検証はunit/model testへ分離した。
+integration test 4件を通過した。無出力`run_project()`、一出力、二出力の三形式、circle/Lissajous output schema、named logging、missing modelの明示的拒否、read-only相当model fileでのruntime、model hash不変、base workspace非依存、path完全復元、test順序非依存を確認した。smoke testは最小起動確認に留め、解析検証はunit/model testへ分離した。
 
 ## 検証環境と結果
 
