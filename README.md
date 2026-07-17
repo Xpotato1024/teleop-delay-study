@@ -18,7 +18,7 @@
 
 ## 現在の状態
 
-現在は、リポジトリの開発基盤、研究契約、MATLAB entry point、設定検証、smoke testまでを整備しています。軌道、通信、plant、評価指標、実験は後続PRで実装します。生成結果は、対応する実装と検証がmergeされるまで有効な研究結果として扱いません。
+現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、Model Referenceによる一次遅れplant、headless simulation、出力loggingまでを実装しています。通信遅延、ZOH、CV、評価指標、実験、最終図は後続PRの対象です。今回の基盤検証は実行可能性と構造に限定し、科学的な解析結果として扱いません。
 
 ## 必要環境
 
@@ -58,7 +58,15 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 ├── AGENTS.md
 ├── CONTRIBUTING.md
 ├── run_project.m
-├── src/
+├── src/+teleopdelay/
+│   ├── +app/
+│   ├── +config/
+│   ├── +timegrid/
+│   ├── +trajectory/
+│   └── +simulink/
+├── models/
+│   ├── plant/first_order_2d.slx
+│   └── system/teleop_delay_system.slx
 ├── tests/
 ├── research/
 │   ├── problem_statement.md

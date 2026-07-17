@@ -201,23 +201,21 @@ Taylor展開から、定速度予測の残差は概ね、
 
 に比例すると予想される。ただし、実際のpacket ageはsampling timingにも依存する。
 
-## 11. 予定module構成
+## 11. module構成
 
 ```text
-src/
-├── default_config.m
-├── validate_config.m
-├── generate_trajectory.m
-├── sample_trajectory.m
-├── reconstruct_command.m
-├── simulate_first_order_plant.m
-├── simulate_case.m
-├── compute_metrics.m
-├── run_factorial.m
-└── plot_report_figures.m
+src/+teleopdelay/
+├── +app/main.m
+├── +config/{default_config,validate_config}.m
+├── +timegrid/create.m
+├── +trajectory/{generate,circle,lissajous_1_2}.m
+└── +simulink/
+    ├── {model_paths,build_models,validate_models}.m
+    ├── {create_simulation_input,run_case}.m
+    └── validate_logging_names.m
 ```
 
-これは予定境界であり、一つのPRで全ファイルを作成する要求ではない。早すぎる細分化を避ける。
+`run_project.m`だけをrepository rootのpublic entry pointとする。`src/`は`run_project`の実行中だけpathへ追加し、呼出元のpathへ戻す。
 
 ## 12. 未確定の設計gate
 
@@ -231,3 +229,31 @@ src/
 - 最小ジャーク乱数軌道の契約
 
 各判断を`research/log.md`へ追記する。
+
+## 13. Issue #2で成立させた基盤
+
+Issue #2では、上記の研究モデル全体のうち、決定論的な軌道生成と遅延を含まない最小plant接続までを実装した。
+
+```text
+src/+teleopdelay/
+├── +app/main.m
+├── +config/{default_config,validate_config}.m
+├── +timegrid/create.m
+├── +trajectory/{generate,circle,lissajous_1_2}.m
+└── +simulink/{model_paths,build_models,create_simulation_input,run_case}.m
+```
+
+MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行、出力schemaを担当する。Simulink側は次の2つのmodelを担当する。
+
+| model | interface |
+|---|---|
+| `models/plant/first_order_2d.slx` | `command_xy_m`（2要素、double、m）を受け、`position_xy_m`（2要素、double、m）を返す。`time_constant_s`をmodel argumentとして公開する。 |
+| `models/system/teleop_delay_system.slx` | MATLAB軌道を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、commandとpositionをDataset loggingする。 |
+
+top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension 2、type double、unit m、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とする。実行時の`FixedStep`は`config.simulation.fixed_step`から`SimulationInput`へ渡す。packet sampling、通信遅延、ZOH、CV、metrics、作図はこの基盤に含めない。
+
+`time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceや`.slx`の再生成には依存しない。
+
+model lifecycleはbuilderとruntimeを分離する。`build_models`は明示的なmodel保守操作であり、`.slx`を書き換える。`app.main`は`validate_models`で追跡済みmodelの存在、Model Reference接続、interface metadata、model updateを確認するだけで、通常実行中にmodelを保存しない。loggingはDataset elementの完全一致名`command_xy_m`と`position_xy_m`で取得し、順序に依存しない。
+
+実装済みの検証は、package・model存在、旧source削除、explicit builder、Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、named logging、path復元、open model cleanup、read-only相当model fileでのruntime、`checkcode`、unit/model/integration testである。軌道の解析値、周期性、微分一致、plant解析解、solver収束性はfollow-upで検証した。

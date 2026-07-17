@@ -1,0 +1,24 @@
+function trajectory = lissajous_1_2(time_s, parameters)
+% lissajous_1_2  1:2 Lissajous軌道の位置、速度、加速度を返す。
+
+validateattributes(time_s, {'numeric'}, {'column', 'real', 'finite'});
+validateattributes(parameters, {'struct'}, {'scalar'});
+validateattributes(parameters.amplitude, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+validateattributes(parameters.omega, {'numeric'}, {'scalar', 'real', 'finite', 'positive'});
+if numel(time_s) < 2 || any(diff(time_s) <= 0)
+    error('teleopDelay:InvalidTimeVector', ...
+        'time_s must contain at least two strictly increasing samples.');
+end
+A = parameters.amplitude;
+omega = parameters.omega;
+position_m = [A * sin(omega * time_s), A * sin(2 * omega * time_s)];
+velocity_mps = [A * omega * cos(omega * time_s), 2 * A * omega * cos(2 * omega * time_s)];
+acceleration_mps2 = [-A * omega^2 * sin(omega * time_s), -4 * A * omega^2 * sin(2 * omega * time_s)];
+trajectory = struct( ...
+    "type", "lissajous_1_2", ...
+    "time_s", time_s, ...
+    "position_m", position_m, ...
+    "velocity_mps", velocity_mps, ...
+    "acceleration_mps2", acceleration_mps2, ...
+    "parameters", parameters);
+end

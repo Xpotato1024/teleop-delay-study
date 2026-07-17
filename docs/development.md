@@ -170,3 +170,24 @@ plot値を手作業で変更したり、生成図を見た目だけ似た別フ�
 ローカル移植ファイルをstageする前に`docs/migrated-assets-policy.md`へ従う。監査結果は`docs/reports/migrated-assets-audit.md`へ記録する。
 
 上流Skillと本研究固有の説明を混在させない。
+
+## 12. Issue #2基盤の検証
+
+MATLAB R2025b Update 5で、リポジトリルートから次を実行する。
+
+```powershell
+matlab -batch "addpath('src'); c=teleopdelay.config.default_config(); p=teleopdelay.simulink.model_paths(pwd); teleopdelay.simulink.build_models(p,c)"
+matlab -batch "status=run_project(); assert(status==0)"
+matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_test(); assert(status==0)"
+matlab -batch "addpath('src'); results=runtests('tests/unit'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/models'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/integration'); assertSuccess(results)"
+matlab -batch "files=dir(fullfile('src','+teleopdelay','**','*.m')); for k=1:numel(files); checkcode(fullfile(files(k).folder,files(k).name),'-id'); end"
+git diff --check
+```
+
+先頭のbuilder commandだけが追跡済み`.slx`を更新する明示的なmodel保守操作である。通常の`run_project`、`smoke_test`、各testはmodelを再生成・保存しない。modelがない場合、runtimeは`teleopDelay:MissingModel`を返す。builder実行後に`.slx`が更新された場合だけGit差分が生じる。`*.slxc`、`slprj/`、`*.slx.bak`は中間生成物または退避ファイルとして追跡しない。
+
+`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`を持ち、simulationは`time_s`、`command_xy_m`、`position_xy_m`を持つ。`time_constant_s`は`SimulationInput.setVariable(...,Workspace='teleop_delay_system')`でmodel argumentへ渡し、base workspaceへassignしない。
+
+解析testでは、circleと1:2 Lissajousの解析位置・速度・加速度、plantの定値入力解析解、solver step半減を検証する。解析差分の許容値は、軌道の有限差分誤差に対してcircle `1e-7`、Lissajous速度 `2e-7`・加速度 `5e-7`、plant解析解に対して`1e-5`とした。plantの実測最大誤差とstep半減結果はPR実装報告に記録する。
