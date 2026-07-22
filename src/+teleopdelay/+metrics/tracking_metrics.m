@@ -34,6 +34,21 @@ if ~(islogical(mask) && iscolumn(mask) && numel(mask) == sampleCount && any(mask
         "evaluation.mask must be a nonempty logical column matching simulation.");
 end
 
+evaluation_packet_valid = simulation.packet_valid(mask);
+if ~any(evaluation_packet_valid)
+    error("teleopDelay:NoValidPacketInEvaluation", ...
+        "The evaluation window contains no valid packet sample.");
+end
+if ~all(evaluation_packet_valid)
+    error("teleopDelay:IncompletePacketHistoryInEvaluation", ...
+        "Every sample in the evaluation window must have a valid packet.");
+end
+evaluation_packet_age = simulation.packet_age_s(mask);
+if any(~isfinite(evaluation_packet_age)) || any(evaluation_packet_age < 0)
+    error("teleopDelay:InvalidPacketAgeInEvaluation", ...
+        "packet_age_s must be finite and nonnegative in the evaluation window.");
+end
+
 reference = simulation.reference_position_xy_m;
 zoh_error = simulation.zoh_position_xy_m - reference;
 cv_error = simulation.cv_position_xy_m - reference;
@@ -59,12 +74,7 @@ else
     improvement_percent = (1.0 - performance_ratio) * 100.0;
 end
 
-valid_in_evaluation = mask & simulation.packet_valid;
-if ~any(valid_in_evaluation)
-    error("teleopDelay:NoValidPacketInEvaluation", ...
-        "The evaluation window contains no valid packet sample.");
-end
-mean_packet_age_s = mean(simulation.packet_age_s(valid_in_evaluation));
+mean_packet_age_s = mean(evaluation_packet_age);
 omega = config.trajectory.omega;
 metrics = struct( ...
     "rmse_zoh_m", rmse_zoh_m, ...

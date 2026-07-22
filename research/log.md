@@ -140,3 +140,10 @@
 - 標準runtime: duration `62.840000000000003 s`、nominal `[12.566370614359172, 62.831853071795862] s`、sample `[12.57, 62.829999999999998] s`、sample count `5027`。`reference_position_xy_m`は`6285 x 2` finiteであった。
 - hygiene: run_project 3形式、path完全復元、3 model close、runtime前後hash不変、read-only model runtime、base workspaceの`time_constant_s`/`sample_period_s`/`delay_s`非残留を確認した。
 - 既定runtime metricsはZOH RMSE `0.12085541283838265 m`、CV RMSE `0.007563217627552481 m`、性能比 `0.062580710701527362`、改善率 `93.741928929847262 %`、mean packet age `0.12000198925827607 s`であった。これは標準契約と配線の実行確認値であり、parameter sweepや最終実験結果ではない。
+
+## 2026-07-22: Issue #7 評価契約P1/P2 follow-up
+
+- 目的: PR #12 reviewで残った、evaluation packet validityのfail-closed契約とDataset element間time alignmentを実装・検証する。
+- 判断: evaluation.mask内の`packet_valid`は全sampleでtrueを要求する。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`で拒否し、invalid sampleだけを除外して評価区間を短縮しない。評価対象`packet_age_s`は有限かつ非負とする。
+- 判断: 8つのDataset elementすべての`Values.Time`をcanonical vectorと比較する。各vectorの`N x 1 double`、有限性、厳密単調増加性を確認し、比較toleranceは`32*eps`のmachine precision由来に限定する。不一致は`teleopDelay:MisalignedLoggedSignal`、個別time vector不正は`teleopDelay:InvalidLoggedTime`とする。
+- 検証: 固定`dt=0.1 s`、`period_s=1 s`、`total_cycles=2`、`warmup_cycles=1`のunit fixtureでcircleと1:2 Lissajousを同じmask index `11:21`（sample count `11`）として確認した。小配列の全valid、全invalid、混在、負age、logged time不一致fixtureを含むfocused unitは12/12、full unitは27/27で成功した。full modelは15/15、full integrationは4/4、smoke、run_project三形式、checkcode 18 files/0 messages、git diff --checkも成功した。

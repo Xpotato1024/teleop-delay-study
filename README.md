@@ -37,6 +37,7 @@ fixed_step_s              scalar double [s]
 ```
 
 既定評価は`total_cycles=10`、`warmup_cycles=2`である。nominal区間は`[2*period_s, 10*period_s]`、metricsに使うsampleはnominal start以上の最初からnominal end以下の最後までとし、nominal境界と実sample境界を`evaluation`へ記録します。
+評価mask内のpacketは全sampleでvalidであることを要求し、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`、全件invalidは`teleopDelay:NoValidPacketInEvaluation`で拒否します。`evaluation`は区間情報に加えてRMSE、NRMSE、最大誤差、性能比、改善率、mean packet age、4つの無次元量を持ちます。8つのlogged signalは全`Values.Time`の一致を検証してからschemaへ変換します。
 
 ## 必要環境
 

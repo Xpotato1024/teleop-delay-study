@@ -138,9 +138,9 @@ e_{m,i}=\|\mathbf e_{m,i}\|_2
 \mathrm{nrmse}_m=\frac{\mathrm{rmse}_m}{A}
 \]
 
-公開fieldは`rmse_zoh_m`、`rmse_cv_m`、`nrmse_zoh`、`nrmse_cv`、`max_error_zoh_m`、`max_error_cv_m`、`performance_ratio`、`improvement_percent`である。`A`はtrajectory amplitude [m]である。
+公開fieldは`rmse_zoh_m`、`rmse_cv_m`、`nrmse_zoh`、`nrmse_cv`、`max_error_zoh_m`、`max_error_cv_m`、`performance_ratio`、`improvement_percent`である。`A`はtrajectory amplitude [m]である。RMSE、最大誤差、mean packet ageは同じ`evaluation.mask`のsample集合から計算する。
 
-`performance_ratio = rmse_cv_m / rmse_zoh_m`、`improvement_percent = (1-performance_ratio)*100`とする。`packet_valid`がtrueの評価sampleだけから`mean_packet_age_s`を求め、`omega_delay`、`omega_mean_packet_age`、`omega_time_constant`、`omega_sample_period`を併せて公開する。有効packetが1つもない場合は`teleopDelay:NoValidPacketInEvaluation`で拒否する。
+`performance_ratio = rmse_cv_m / rmse_zoh_m`、`improvement_percent = (1-performance_ratio)*100`とする。評価mask内の`packet_valid`は全sampleでtrueでなければならない。全件falseは`teleopDelay:NoValidPacketInEvaluation`、true/false混在は`teleopDelay:IncompletePacketHistoryInEvaluation`で拒否し、invalid sampleをmetricsから除外して評価区間を短縮しない。`mean_packet_age_s`はこの全validな評価sample集合から求め、評価対象の`packet_age_s`は有限かつ非負でなければならない。`omega_delay`、`omega_mean_packet_age`、`omega_time_constant`、`omega_sample_period`を併せて公開する。
 
 ### 7.3 zero denominator contract
 
@@ -156,6 +156,10 @@ zero判定のtoleranceは`32*eps(max(1, abs(rmse_zoh_m), abs(rmse_cv_m)))`とい
 - 標準設定は全10周期、最初の2周期を除外する。
 - 起動時のplant初期状態はzero、最初のpacket到着前は`packet_valid=false`とし、過去packetの事前投入は行わない。
 - `evaluation.nominal_*`と`evaluation.sample_*`を分離して記録する。
+
+### 8.1 logging time alignment
+
+Datasetの8要素すべてについて`Values.Time`を取得する。最初に取得したcanonical time vectorと各要素を、`N x 1 double`、有限、厳密単調増加、shape一致として検証し、値の比較には`32*eps(max(1, abs(t)))`のmachine precision由来toleranceだけを使う。不一致は`teleopDelay:MisalignedLoggedSignal`、個別time vectorのshape・有限性・単調性違反は`teleopDelay:InvalidLoggedTime`で拒否する。data配列をrow対応で扱うのはこの検証後に限る。
 
 ## 9. 決定論的軌道
 
@@ -205,7 +209,8 @@ src/+teleopdelay/
 └── +simulink/
     ├── {model_paths,build_models,validate_models}.m
     ├── {create_simulation_input,run_case}.m
-    └── validate_logging_names.m
+    ├── validate_logging_names.m
+    └── validate_logged_time_alignment.m
 ```
 
 `run_project.m`だけをrepository rootのpublic entry pointとする。`src/`は`run_project`の実行中だけpathへ追加し、呼出元のpathへ戻す。

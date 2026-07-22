@@ -197,12 +197,14 @@ reference/evaluation/metricsの変更では、次の順で実行する。
 ```powershell
 matlab -batch "addpath('src'); c=teleopdelay.config.default_config(); p=teleopdelay.simulink.model_paths(pwd); teleopdelay.simulink.build_models(p,c)"
 matlab -batch "addpath('src'); results=runtests('tests/unit/test_metrics.m'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/unit/test_logged_time_alignment.m'); assertSuccess(results)"
 matlab -batch "addpath('src'); results=runtests('tests/models/test_reference_plant.m'); assertSuccess(results)"
 ```
 
 `test_reference_plant`のzero-delay fixtureは、`sample_period=fixed_step`かつ`delay=0`でZOH/CV commandが同一時刻の連続目標sampleに一致すること、reference plantが円軌道の一次遅れ解析解へsolver tolerance内で一致すること、ZOH/CV/referenceのplant出力関係を確認する。referenceの解析解誤差、solver-stage packet reconstructionとの誤差は実行時に測定して報告する。
 
 Issue #7後の公開simulation schemaは、`time_s`、5つの`N x 2` position/command signal、3つのpacket diagnostics、`solver`、`fixed_step_s`である。Datasetは8つの名前付きelementを完全一致で検証し、Dataset順序には依存しない。`run_project`後の`output.evaluation`はnominal/sample境界とmetricsを持つ。
+評価mask内のpacket validityはfail-closedであり、全件validだけをmetricsへ渡す。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、混在は`teleopDelay:IncompletePacketHistoryInEvaluation`、負の評価packet ageは`teleopDelay:InvalidPacketAgeInEvaluation`で拒否する。8要素の`Values.Time`は`teleopdelay.simulink.validate_logged_time_alignment`でcanonical vectorとの一致を確認する。
 
 ### 通信Model Referenceのbuilderと検証
 

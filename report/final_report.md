@@ -37,7 +37,7 @@
 
 ### 2.5 評価指標
 
-追従誤差のreferenceは連続目標そのものではなく、同じplantへ直接入力した`reference_position_xy_m`である。評価window内でRMSE、trajectory amplitudeによるNRMSE、最大Euclidean誤差、CV/ZOH RMSE比、改善率を計算する。valid packetだけの平均ageと、\(\omega L\)、\(\omega\overline{age}\)、\(\omega T\)、\(\omega h_s\)を公開する。
+追従誤差のreferenceは連続目標そのものではなく、同じplantへ直接入力した`reference_position_xy_m`である。評価window内でRMSE、trajectory amplitudeによるNRMSE、最大Euclidean誤差、CV/ZOH RMSE比、改善率を計算する。RMSE、最大誤差、mean packet ageは同じ評価sample集合を使用し、評価mask内のpacketは全件validでなければならない。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`、負の評価packet ageは`teleopDelay:InvalidPacketAgeInEvaluation`で拒否する。4つの無次元量\(\omega L\)、\(\omega\overline{age}\)、\(\omega T\)、\(\omega h_s\)を公開する。loggingの8要素は`Values.Time`の一致を検証してから対応付ける。
 
 ## 3. シミュレーション条件
 
