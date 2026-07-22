@@ -114,7 +114,10 @@
 - 未実施: 通信遅延、packet sampling、ZOH、CV、metrics、補償効果。
 ## 2026-07-22: Issue #5 サンプル値通信とZOH/CV
 
-- 目的: 既存実装のsampling時刻保証、packet buffer上限guard、通信schema test、正本文書をreview指摘に合わせて修正する。
-- 設計判断: `sample_period_s / fixed_step_s`を正の整数に必須化し、`sample_period_s < fixed_step_s`と非整数比を`teleopDelay:InvalidSampleAlignment`で拒否する。sampling値は実行時のsolver入力と一致する離散境界だけを受け付ける。
-- buffer契約: 固定長1024 packet bufferに対し、`ceil(delay_s/sample_period_s)+1`の必要履歴数が容量を超える条件を`teleopDelay:CommunicationBufferOverflow`で拒否する。境界値は許可し、浮動小数点近傍の整数比は丸めてexact arrival semanticsを維持する。
-- 検証: sampling alignment、非整数比、`sample_period_s < fixed_step_s`、解析的packet timestamp/age/ZOH/CV、buffer境界、model metadata、runtime cleanupを追加検証する。
+- 目的: 連続目標位置・解析速度を独立した通信Model Referenceへ入力し、同じ最新packetからZOH/CV指令とpacket diagnosticsを生成して、同一simulation内の2方式のplant出力を取得する実装を成立させた。
+- 設計判断: packetはtimestamp、sampled position、sampled velocityを一体として固定長ring bufferへ保持した。時刻`t`では`t_k+delay_s<=t`を満たす最大timestampを決定論的に選択し、exact arrival boundaryは到着済みとした。ZOH、CV、timestamp、age、validityは同じ選択packetを共有した。
+- sampling契約: Preferred方式の離散sampling境界を追加する代わりに、`sample_period_s / fixed_step_s`がmachine precision内の正の整数となること、`sample_period_s >= fixed_step_s`、`simulation.fixed_step == simulation.dt`をconfigで必須化した。この数値モデルでは、実行時solver境界で取得したposition・velocityとpacket timestampの対応をこのguardで保証した。非整合条件は`teleopDelay:InvalidSampleAlignment`または`teleopDelay:InvalidFixedStep`で拒否した。
+- CVとstartup: CVの外挿時間は名目遅延ではなく`current_time-packet_timestamp_s`とした。最初のpacket到着前は`packet_valid=false`、timestampとageを0、ZOH/CVをゼロとした。valid時のageはcurrent timeと選択timestampの差とした。
+- buffer契約: 容量は`communication_buffer_capacity()`が一元管理する1024 packetとした。必要履歴数`ceil(delay_s/sample_period_s)+1`が容量を超える条件を`teleopDelay:CommunicationBufferOverflow`で拒否し、境界値を許可した。整数近傍の丸めは浮動小数点誤差とexact arrival semanticsを考慮して限定的に行った。
+- 検証結果: MATLAB R2025b Update 5 / Simulinkでexplicit builder、focused communication 4件、unit 15件、model 13件、integration 4件、smoke testを実行し、全件成功した。sampling alignment、一定速度解析値、buffer境界とring buffer wrap、output metadata、read-only 3 model runtime、path復元、cleanup、base workspace非残留、runtime前後hash一致を確認した。
+- 未実装範囲: RMSE、改善率、parameter sweep、結果保存、作図、random軌道、packet loss/jitter、実ネットワークはIssueの指定どおり後続PRの対象とした。

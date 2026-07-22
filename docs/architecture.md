@@ -232,7 +232,7 @@ src/+teleopdelay/
 
 ## 13. Issue #2で成立させた基盤
 
-Issue #2では、上記の研究モデル全体のうち、決定論的な軌道生成と遅延を含まない最小plant接続までを実装した。
+Issue #2では、決定論的な軌道生成と、通信遅延を含まない最小plant接続までを実装した。通信packet、ZOH/CV、評価指標、作図はこの時点の基盤には含めなかった。
 
 ```text
 src/+teleopdelay/
@@ -243,21 +243,16 @@ src/+teleopdelay/
 └── +simulink/{model_paths,build_models,create_simulation_input,run_case}.m
 ```
 
-MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行、出力schemaを担当する。Simulink側は次の2つのmodelを担当する。
+MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行を担当し、Simulink側はplantとtop-level接続を担当した。
 
 | model | interface |
 |---|---|
 | `models/plant/first_order_2d.slx` | `command_xy_m`（2要素、double、m）を受け、`position_xy_m`（2要素、double、m）を返す。`time_constant_s`をmodel argumentとして公開する。 |
-| `models/communication/sampled_communication.slx` | `position_xy_m`と`velocity_mps`を受け、`sample_period_s`と`delay_s`に基づくpacket、ZOH/CV command、timestamp・age・validityを返す。 |
-| `models/system/teleop_delay_system.slx` | MATLAB軌道の位置・解析速度を外部入力として受け、通信Model Referenceと2つの`first_order_2d.slx`を参照し、7要素schemaをDataset loggingする。 |
+| `models/system/teleop_delay_system.slx` | MATLAB軌道の位置を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、`command_xy_m`と`position_xy_m`をDataset loggingする。 |
 
-top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension、type、unit、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とする。実行時の`FixedStep`は`config.simulation.fixed_step`から`SimulationInput`へ渡す。通信modelはpacket sampling、固定遅延、ZOH、CV、packet diagnosticsを所有し、metricsと作図は未実装である。
+top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension、type、unit、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とした。通信packet、固定通信遅延、ZOH/CV指令再構成、metrics、作図は後続実装の責務とした。
 
-`time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceや`.slx`の再生成には依存しない。
-
-model lifecycleはbuilderとruntimeを分離する。`build_models`は明示的なmodel保守操作であり、`.slx`を書き換える。`app.main`は`validate_models`で追跡済みmodelの存在、Model Reference接続、interface metadata、model updateを確認するだけで、通常実行中にmodelを保存しない。loggingはDataset elementの完全一致名`zoh_command_xy_m`、`cv_command_xy_m`、`zoh_position_xy_m`、`cv_position_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`で取得し、順序に依存しない。
-
-実装済みの検証は、package・model存在、explicit builder、通信Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、named logging、path復元、open model cleanup、read-only相当model fileでのruntime、`checkcode`、unit/model/integration testである。軌道の解析値、周期性、微分一致、plant解析解、solver収束性はfollow-upで検証した。
+`time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceへは依存しない。
 
 ## 14. Issue #5 サンプル値通信の実装契約
 

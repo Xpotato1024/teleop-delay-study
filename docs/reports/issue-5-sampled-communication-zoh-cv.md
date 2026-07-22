@@ -24,12 +24,14 @@
 - `models/communication/sampled_communication.slx`を追加した。
 - `create_simulation_input`で位置と解析速度をDataset外部入力としてcase単位に渡すようにした。
 - `run_case`で名前付きDataset elementを順序非依存でschemaへ変換するようにした。
-- `tests/models/test_sampled_communication.m`へL=0、整数・非整数遅延比、exact boundary、一定速度、ZOH保持、startup、不正値fixtureを追加した。
+- `tests/models/test_sampled_communication.m`へL=0、整数・非整数遅延比、exact boundary、一定速度、ZOH保持、startup、不正値、sampling alignment、buffer境界、ring buffer wrap fixtureを追加した。
 - 旧`command_xy_m`、`position_xy_m`のsimulation aliasは残していない。
 
 ## 検証
 
-MATLAB R2025b Update 5 / Simulinkで、explicit builder、focused communication model tests 3件、unit 15件、model 12件、integration 4件、smoke testを実行し、全件成功した。`run_project`の無出力・一出力・二出力、path復元、model cleanup、base workspace非残留、runtime model hash不変もintegration/smokeで確認した。
+MATLAB R2025b Update 5 / Simulinkで、explicit builder、focused communication model tests 4件、unit 15件、model 13件、integration 4件、smoke testを実行し、全件成功した。`run_project`の無出力・一出力・二出力、path復元、plant・communication・systemの3 model cleanup、base workspace非残留、3 modelのruntime前後hash一致、3 modelをread-onlyにしたruntimeも確認した。
+
+sampling alignment fixtureでは`sample_period_s=fixed_step=0.01 s`、非整数比と`sample_period_s < fixed_step_s`をstable error identifierで拒否した。一定速度fixtureでは各時刻の期待timestamp、validity、`packet_age_s=time_s-packet_timestamp_s`、ZOH、CVを解析値と比較し、ring buffer wrap fixtureでは`capacity=communication_buffer_capacity()`、`delay_s=(capacity-1)sample_period_s`の境界でwrap前後を比較した。通信出力はdimension、double/boolean、unit、inherited sample timeを検証し、model workspace引数は`Simulink.Parameter`、DataType `double`、Unit `s`、`ParameterArgumentNames=sample_period_s,delay_s`、top-level instance mapping同名を確認した。
 
 未実施範囲はIssueの指定どおり、RMSE・改善率・parameter sweep・結果保存・作図・random軌道・packet loss/jitter・実ネットワークである。
 

@@ -79,12 +79,16 @@ function testReadOnlyModelsRemainRunnable(testCase)
 root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
 plantFile = java.io.File(paths.plant);
+communicationFile = java.io.File(paths.communication);
 systemFile = java.io.File(paths.system);
 plantWasReadOnly = plantFile.canWrite() == false;
+communicationWasReadOnly = communicationFile.canWrite() == false;
 systemWasReadOnly = systemFile.canWrite() == false;
 plantFile.setWritable(false);
+communicationFile.setWritable(false);
 systemFile.setWritable(false);
-cleanup = onCleanup(@() restore_writable(plantFile, systemFile, plantWasReadOnly, systemWasReadOnly));
+cleanup = onCleanup(@() restore_writable(plantFile, communicationFile, systemFile, ...
+    plantWasReadOnly, communicationWasReadOnly, systemWasReadOnly));
 pathBefore = path;
 addpath(root);
 cleanupPath = onCleanup(@() path(pathBefore));
@@ -92,7 +96,8 @@ status = run_project();
 verifyEqual(testCase, status, 0);
 clear cleanupPath;
 clear cleanup;
-restore_writable(plantFile, systemFile, plantWasReadOnly, systemWasReadOnly);
+restore_writable(plantFile, communicationFile, systemFile, ...
+    plantWasReadOnly, communicationWasReadOnly, systemWasReadOnly);
 end
 
 function hash = sha256_file(filePath)
@@ -106,8 +111,10 @@ hash = lower(reshape(dec2hex(hashBytes, 2).', 1, []));
 clear cleanup;
 end
 
-function restore_writable(plantFile, systemFile, plantWasReadOnly, systemWasReadOnly)
+function restore_writable(plantFile, communicationFile, systemFile, ...
+        plantWasReadOnly, communicationWasReadOnly, systemWasReadOnly)
 plantFile.setWritable(~plantWasReadOnly);
+communicationFile.setWritable(~communicationWasReadOnly);
 systemFile.setWritable(~systemWasReadOnly);
 end
 

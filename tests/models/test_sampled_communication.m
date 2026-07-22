@@ -61,6 +61,38 @@ verifyTrue(testCase, simulation.packet_valid(1));
 verifyEqual(testCase, simulation.packet_timestamp_s(1), 0, AbsTol=1e-12);
 verifyEqual(testCase, simulation.packet_age_s(1), 0, AbsTol=1e-12);
 verifyEqual(testCase, simulation.cv_command_xy_m, trajectory.position_m, AbsTol=1e-10);
+
+capacity = teleopdelay.config.communication_buffer_capacity();
+config.communication.sample_period = config.simulation.fixed_step;
+config.communication.delay = (capacity - 1) * config.communication.sample_period;
+config.simulation.duration = (capacity + 4) * config.simulation.fixed_step;
+velocity = [0.75, -0.25];
+trajectory = constant_velocity_trajectory(config, velocity);
+simulation = run_case(config, trajectory, paths);
+expectedTimestamp = zeros(size(simulation.time_s));
+expectedValid = false(size(simulation.time_s));
+for index = 1:numel(simulation.time_s)
+    availableTime = simulation.time_s(index) - config.communication.delay;
+    if availableTime >= -1e-10
+        expectedTimestamp(index) = max(0, floor((availableTime + 1e-10) / ...
+            config.communication.sample_period) * config.communication.sample_period);
+        expectedValid(index) = true;
+    end
+end
+wrapValid = expectedValid;
+verifyTrue(testCase, any(wrapValid));
+verifyEqual(testCase, simulation.packet_timestamp_s(wrapValid), ...
+    expectedTimestamp(wrapValid), AbsTol=1e-10);
+verifyEqual(testCase, simulation.packet_age_s(wrapValid), ...
+    simulation.time_s(wrapValid) - expectedTimestamp(wrapValid), AbsTol=1e-10);
+packetPosition = trajectory.position_m(1,:) + expectedTimestamp * velocity;
+verifyEqual(testCase, simulation.zoh_command_xy_m(wrapValid,:), ...
+    packetPosition(wrapValid,:), AbsTol=1e-10);
+expectedCv = packetPosition + simulation.packet_age_s * velocity;
+verifyEqual(testCase, simulation.cv_command_xy_m(wrapValid,:), ...
+    expectedCv(wrapValid,:), AbsTol=1e-9);
+verifyEqual(testCase, simulation.packet_timestamp_s(end), ...
+    config.simulation.duration - config.communication.delay, AbsTol=1e-10);
 end
 
 function testInvalidCommunicationInputs(testCase)
@@ -122,6 +154,20 @@ load_system(paths.system);
 cleanup = onCleanup(@() close_models(paths));
 verifyEqual(testCase, string(get_param(paths.communicationModelName, 'ParameterArgumentNames')), ...
     "sample_period_s,delay_s");
+workspace = get_param(paths.communicationModelName, 'ModelWorkspace');
+for name = ["sample_period_s", "delay_s"]
+    parameter = getVariable(workspace, char(name));
+    verifyClass(testCase, parameter, 'Simulink.Parameter');
+    verifyEqual(testCase, string(parameter.DataType), "double");
+    verifyEqual(testCase, string(parameter.Unit), "s");
+end
+communicationBlock = [char(paths.systemModelName) '/sampled_communication'];
+instanceParameters = get_param(communicationBlock, 'InstanceParameters');
+for name = ["sample_period_s", "delay_s"]
+    index = find(strcmp(string({instanceParameters.Name}), name), 1);
+    verifyNotEmpty(testCase, index);
+    verifyEqual(testCase, string(instanceParameters(index).Value), name);
+end
 verifyEqual(testCase, get_param([char(paths.systemModelName) '/sampled_communication'], 'Ports'), ...
     [2 5 0 0 0 0 0 0 0 0]);
 verifyEqual(testCase, string(get_param([char(paths.communicationModelName) '/position_xy_m'], 'Unit')), "m");

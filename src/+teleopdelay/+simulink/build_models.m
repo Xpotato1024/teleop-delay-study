@@ -52,8 +52,8 @@ cleanup = onCleanup(@() close_if_loaded(modelName));
 set_param(modelName, "Solver", "ode4", "FixedStep", "0.01", "StopTime", "10", ...
     "SaveOutput", "off", "SignalLogging", "off");
 workspace = get_param(modelName, "ModelWorkspace");
-assignin(workspace, "sample_period_s", Simulink.Parameter(0.05));
-assignin(workspace, "delay_s", Simulink.Parameter(0.10));
+assignin(workspace, "sample_period_s", make_seconds_parameter(0.05));
+assignin(workspace, "delay_s", make_seconds_parameter(0.10));
 positionIn = [modelName '/position_xy_m'];
 velocityIn = [modelName '/velocity_mps'];
 clockBlock = [modelName '/Clock'];
@@ -109,6 +109,12 @@ end
 
 function name = parameter_name(port)
 if port == 1, name = 'sample_period_s'; else, name = 'delay_s'; end
+end
+
+function parameter = make_seconds_parameter(value)
+parameter = Simulink.Parameter(value);
+parameter.DataType = "double";
+parameter.Unit = "s";
 end
 
 function name = output_name(port)

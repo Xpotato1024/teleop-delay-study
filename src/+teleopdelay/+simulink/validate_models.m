@@ -53,11 +53,37 @@ assert(strcmp(get_param(communicationModelBlock, "ModelName"), paths.communicati
     "The top-level model must reference sampled_communication.");
 assert(strcmp(get_param(paths.communicationModelName, "ParameterArgumentNames"), ...
     "sample_period_s,delay_s"), "Communication model arguments are not stable.");
+verify_communication_parameter_metadata(paths.communicationModelName);
+verify_instance_parameter_mapping(communicationModelBlock, ...
+    ["sample_period_s", "delay_s"], "communication Model Reference");
 info = struct("plant", paths.plant, "communication", paths.communication, "system", paths.system, ...
     "input_dimension", 2, "output_dimension", 2, "unit", "m", "data_type", "double", ...
     "sample_time", -1, "plant_state_sample_time", 0, "solver", "ode4");
 clear cleanup;
 close_new_models(paths, plantWasLoaded, communicationWasLoaded, systemWasLoaded);
+end
+
+function verify_communication_parameter_metadata(modelName)
+workspace = get_param(modelName, "ModelWorkspace");
+for name = ["sample_period_s", "delay_s"]
+    parameter = getVariable(workspace, char(name));
+    assert(isa(parameter, "Simulink.Parameter"), ...
+        "Communication argument %s must be a Simulink.Parameter.", name);
+    assert(strcmp(string(parameter.DataType), "double"), ...
+        "Communication argument %s must have double DataType.", name);
+    assert(strcmp(string(parameter.Unit), "s"), ...
+        "Communication argument %s must have unit s.", name);
+end
+end
+
+function verify_instance_parameter_mapping(blockPath, names, role)
+parameters = get_param(blockPath, "InstanceParameters");
+for name = names
+    index = find(strcmp(string({parameters.Name}), name), 1);
+    assert(~isempty(index), "%s is missing instance parameter %s.", role, name);
+    assert(strcmp(string(parameters(index).Value), name), ...
+        "%s instance parameter %s must map by the same name.", role, name);
+end
 end
 
 function verify_port(blockPath, role, expectedUnit)

@@ -18,7 +18,7 @@
 
 ## 現在の状態
 
-現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、並列した一次遅れplant、headless simulation、出力loggingまでを実装しています。評価指標、parameter sweep、実験、最終図は対象外です。
+現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、並列した一次遅れplant、headless simulation、出力loggingまでを実装しています。評価指標、parameter sweep、実験、最終図は現時点では未実装であり、後続PRの対象です。
 
 ## 必要環境
 
@@ -120,4 +120,3 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 [`LICENSE`](LICENSE)を参照してください。第三者資産を導入する場合、そのディレクトリに追加のLICENSEまたはNOTICEが含まれることがあります。
 
 汎用MATLAB作業規則は、内製の`skills/matlab-engineering/`にあります。本研究固有の規則は`skills/teleop-delay-matlab/`にあります。検証済み上流MATLAB packageは現在追跡していません。
-補足: 評価指標、parameter sweep、実験、最終図は研究全体の対象外ではなく、現時点では未実装であり後続PRの対象です。
