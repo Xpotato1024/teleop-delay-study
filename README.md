@@ -18,7 +18,7 @@
 
 ## 現在の状態
 
-現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、Model Referenceによる一次遅れplant、headless simulation、出力loggingまでを実装しています。通信遅延、ZOH、CV、評価指標、実験、最終図は後続PRの対象です。今回の基盤検証は実行可能性と構造に限定し、科学的な解析結果として扱いません。
+現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、並列した一次遅れplant、headless simulation、出力loggingまでを実装しています。評価指標、parameter sweep、実験、最終図は対象外です。
 
 ## 必要環境
 

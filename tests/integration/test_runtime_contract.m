@@ -7,6 +7,7 @@ root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
 close_models(paths);
 beforePlant = sha256_file(paths.plant);
+beforeCommunication = sha256_file(paths.communication);
 beforeSystem = sha256_file(paths.system);
 pathBefore = path;
 addpath(root);
@@ -15,8 +16,10 @@ run_project();
 clear cleanupPath;
 verifyEqual(testCase, path, pathBefore);
 verifyFalse(testCase, bdIsLoaded(paths.plantModelName));
+verifyFalse(testCase, bdIsLoaded(paths.communicationModelName));
 verifyFalse(testCase, bdIsLoaded(paths.systemModelName));
 verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
+verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
 verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 pathBefore = path;
@@ -32,6 +35,7 @@ verifyTrue(testCase, isfield(output, 'simulation'));
 clear cleanupPath;
 verifyEqual(testCase, path, pathBefore);
 verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
+verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
 verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 end
@@ -44,16 +48,18 @@ time_s = teleopdelay.timegrid.create(0.2, 0.01);
 trajectory = teleopdelay.trajectory.generate(time_s, config.trajectory);
 simulationInput = teleopdelay.simulink.create_simulation_input(paths, config, trajectory);
 load_system(paths.plant);
+load_system(paths.communication);
 load_system(paths.system);
 cleanup = onCleanup(@() close_models(paths));
 simulationOutput = sim(simulationInput);
 names = cellstr(simulationOutput.yout.getElementNames());
 names = names(:).';
-verifyEqual(testCase, sort(names), sort({'command_xy_m', 'position_xy_m'}));
-verifyError(testCase, @() teleopdelay.simulink.validate_logging_names({'command_xy_m'}), ...
+verifyEqual(testCase, sort(names), sort({'zoh_command_xy_m', 'cv_command_xy_m', 'zoh_position_xy_m', ...
+    'cv_position_xy_m', 'packet_timestamp_s', 'packet_age_s', 'packet_valid'}));
+verifyError(testCase, @() teleopdelay.simulink.validate_logging_names({'zoh_command_xy_m'}), ...
     'teleopDelay:InvalidLoggingContract');
 verifyError(testCase, @() teleopdelay.simulink.validate_logging_names( ...
-    {'command_xy_m', 'command_xy_m'}), 'teleopDelay:InvalidLoggingContract');
+    {'zoh_command_xy_m', 'zoh_command_xy_m'}), 'teleopDelay:InvalidLoggingContract');
 clear cleanup;
 close_models(paths);
 end
@@ -111,5 +117,8 @@ if bdIsLoaded(paths.systemModelName)
 end
 if bdIsLoaded(paths.plantModelName)
     close_system(paths.plantModelName, 0);
+end
+if bdIsLoaded(paths.communicationModelName)
+    close_system(paths.communicationModelName, 0);
 end
 end

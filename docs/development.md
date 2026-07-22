@@ -188,6 +188,16 @@ git diff --check
 
 先頭のbuilder commandだけが追跡済み`.slx`を更新する明示的なmodel保守操作である。通常の`run_project`、`smoke_test`、各testはmodelを再生成・保存しない。modelがない場合、runtimeは`teleopDelay:MissingModel`を返す。builder実行後に`.slx`が更新された場合だけGit差分が生じる。`*.slxc`、`slprj/`、`*.slx.bak`は中間生成物または退避ファイルとして追跡しない。
 
-`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`を持ち、simulationは`time_s`、`command_xy_m`、`position_xy_m`を持つ。`time_constant_s`は`SimulationInput.setVariable(...,Workspace='teleop_delay_system')`でmodel argumentへ渡し、base workspaceへassignしない。
+`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`を持ち、simulationは`time_s`、ZOH/CVのcommand・plant position、packet timestamp・age・validityを持つ。`time_constant_s`、`sample_period_s`、`delay_s`は`SimulationInput.setVariable(...,Workspace='teleop_delay_system')`でcase単位に渡し、base workspaceへassignしない。
+
+### 通信Model Referenceのbuilderと検証
+
+追跡済みmodelを再生成する明示的commandは次である。
+
+```text
+matlab -batch "addpath('src'); c=teleopdelay.config.default_config(); p=teleopdelay.simulink.model_paths(pwd); teleopdelay.simulink.build_models(p,c)"
+```
+
+生成されるmodelは`models/communication/sampled_communication.slx`、`models/plant/first_order_2d.slx`、`models/system/teleop_delay_system.slx`である。focused通信検証は`matlab -batch "addpath('src'); results=runtests('tests/models/test_sampled_communication.m')"`で実行する。runtimeの`run_project`、test、smokeはmodelを再生成・保存しない。
 
 解析testでは、circleと1:2 Lissajousの解析位置・速度・加速度、plantの定値入力解析解、solver step半減を検証する。解析差分の許容値は、軌道の有限差分誤差に対してcircle `1e-7`、Lissajous速度 `2e-7`・加速度 `5e-7`、plant解析解に対して`1e-5`とした。plantの実測最大誤差とstep半減結果はPR実装報告に記録する。

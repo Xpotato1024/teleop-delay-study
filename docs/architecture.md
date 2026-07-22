@@ -256,4 +256,12 @@ top-level modelはplant内部のblockやstateへ依存しない。Inport/Outport
 
 model lifecycleはbuilderとruntimeを分離する。`build_models`は明示的なmodel保守操作であり、`.slx`を書き換える。`app.main`は`validate_models`で追跡済みmodelの存在、Model Reference接続、interface metadata、model updateを確認するだけで、通常実行中にmodelを保存しない。loggingはDataset elementの完全一致名`command_xy_m`と`position_xy_m`で取得し、順序に依存しない。
 
-実装済みの検証は、package・model存在、旧source削除、explicit builder、Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、named logging、path復元、open model cleanup、read-only相当model fileでのruntime、`checkcode`、unit/model/integration testである。軌道の解析値、周期性、微分一致、plant解析解、solver収束性はfollow-upで検証した。
+実装済みの検証は、package・model存在、explicit builder、通信Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、named logging、path復元、open model cleanup、read-only相当model fileでのruntime、`checkcode`、unit/model/integration testである。軌道の解析値、周期性、微分一致、plant解析解、solver収束性はfollow-upで検証した。
+
+## 10. Issue #5 サンプル値通信の実装契約
+
+`models/communication/sampled_communication.slx`は、連続目標位置`position_xy_m`（2要素、double、m）と解析速度`velocity_mps`（2要素、double、m/s）を入力とする独立Model Referenceである。model argumentsは`sample_period_s`（s）と`delay_s`（s）であり、内部ClockとMATLAB Functionブロックがsampling、packet timestamp・position・velocityの一体保持、到着判定、最新packet選択を所有する。送信時刻`t_k`のpacketは`t_k+delay_s<=t`で利用可能とする。
+
+通信modelは同じ選択packetから、`zoh_command_xy_m`、`cv_command_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`を出力する。CVの外挿時間は`current_time-packet_timestamp_s`である。最初のpacket到着前はvalidity=false、timestamp=0、age=0、ZOH/CV=[0,0]とする。
+
+top-level `teleop_delay_system.slx`は通信出力を2つの`first_order_2d.slx` instanceへ分岐する。Dataset elementは`zoh_command_xy_m`、`cv_command_xy_m`、`zoh_position_xy_m`、`cv_position_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`の名前で取得し、順序には依存しない。MATLAB側の公開schemaは`config`、`trajectory`、`simulation`を維持し、`simulation`内に同名の`N x 1`または`N x 2`配列を公開する。旧`command_xy_m`、`position_xy_m` aliasは追加しない。

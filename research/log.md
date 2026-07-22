@@ -105,6 +105,14 @@
 
 ## 2026-07-15: 最終監査P2修正
 
+## 2026-07-22: Issue #5 サンプル値通信とZOH/CV
+
+- 目的: 連続目標位置・解析速度を独立通信Model Referenceへ入力し、同じ最新packetからZOH/CV指令とpacket diagnosticsを生成して、同一simulation内で2方式のplant出力を取得する。
+- 設計判断: packetはtimestamp、sampled position、sampled velocityを一体として固定長ring bufferへ保持する。時刻`t`では`t_k+L<=t`を満たす最大timestampを選択し、exact boundaryは到着済みとする。ZOH/CVとtimestamp・validityは同じ選択結果を共有する。
+- CV契約: 外挿時間は名目遅延`L`ではなく、`current_time-packet_timestamp`とする。startupでは最初のpacket到着前をinvalid、timestamp/ageを0、ZOH/CVをゼロとする。
+- 境界: MATLABはconfig、timegrid、trajectory、SimulationInput、結果schemaを担当し、Simulinkはsampling、固定遅延、packet選択、ZOH/CV、plant sample-time関係を担当する。plant interfaceと`time_constant_s`は変更しない。
+- 検証: MATLAB R2025bでbuilder、通信fixture 3件、unit 15件、model 12件、integration 4件、smokeを実行した。metrics、RMSE、sweep、結果保存、作図、random軌道は実装しない。
+
 - 目的: configの型契約とSimulink sample-time/dimension契約に関するP2指摘2件だけを修正する。
 - config契約: `trajectory.type`と`simulation.solver`をnonmissing string scalarに限定し、許可値をそれぞれ`circle`/`lissajous_1_2`と`ode4`の完全一致に限定した。default configからdispatcherまで同じ型契約を通過することをunit testで確認した。
 - model契約: R2025b Update 5で実取得したInport/Outportの`SampleTime=-1`、State-Space blockのcompiled sample time `[0 0]`、top-level solver `ode4`を`validate_models`とmodel testへ反映した。未対応のState-Space `SampleTime` parameterは使用していない。

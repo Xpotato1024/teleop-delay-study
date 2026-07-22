@@ -35,13 +35,15 @@ assert(rejected, "整数stepにならないduration / dtを拒否しなければ
 paths = teleopdelay.simulink.model_paths(testRoot);
 teleopdelay.simulink.validate_models(paths);
 assert(isfile(paths.plant));
+assert(isfile(paths.communication));
 assert(isfile(paths.system));
 
 load_system(paths.plant);
+load_system(paths.communication);
 load_system(paths.system);
 cleanupModels = onCleanup(@() close_models(paths));
-modelBlock = [paths.systemModelName '/first_order_2d'];
-assert(strcmp(get_param(modelBlock, 'ModelName'), paths.plantModelName));
+modelBlock = [paths.systemModelName '/sampled_communication'];
+assert(strcmp(get_param(modelBlock, 'ModelName'), paths.communicationModelName));
 set_param(paths.systemModelName, 'SimulationCommand', 'update');
 clear cleanupModels;
 close_models(paths);
@@ -51,7 +53,7 @@ pathBeforeEntry = path;
 assert(status == 0);
 assert_output(output, "circle");
 assert(strcmp(pathBeforeEntry, path));
-assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.plantModelName));
+assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.communicationModelName) && ~bdIsLoaded(paths.plantModelName));
 
 statusOnly = run_project();
 assert(statusOnly == 0);
@@ -71,7 +73,7 @@ for trajectoryType = ["circle", "lissajous_1_2"]
     simulationInput = teleopdelay.simulink.create_simulation_input(paths, caseConfig, trajectory);
     simulation = teleopdelay.simulink.run_case(simulationInput, paths, caseConfig);
     assert_output(struct("config", caseConfig, "trajectory", trajectory, "simulation", simulation), trajectoryType);
-    assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.plantModelName));
+    assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.communicationModelName) && ~bdIsLoaded(paths.plantModelName));
 end
 
 clear cleanupPath;
@@ -90,13 +92,24 @@ assert(isequal(size(trajectory.position_m), [N, 2]));
 assert(isequal(size(trajectory.velocity_mps), [N, 2]));
 assert(isequal(size(trajectory.acceleration_mps2), [N, 2]));
 assert(isequal(size(simulation.time_s), [N, 1]));
-assert(isequal(size(simulation.command_xy_m), [N, 2]));
-assert(isequal(size(simulation.position_xy_m), [N, 2]));
+required = ["zoh_command_xy_m", "cv_command_xy_m", "zoh_position_xy_m", ...
+    "cv_position_xy_m", "packet_timestamp_s", "packet_age_s", "packet_valid"];
+assert(all(isfield(simulation, required)));
+assert(isequal(size(simulation.zoh_command_xy_m), [N, 2]));
+assert(isequal(size(simulation.cv_command_xy_m), [N, 2]));
+assert(isequal(size(simulation.zoh_position_xy_m), [N, 2]));
+assert(isequal(size(simulation.cv_position_xy_m), [N, 2]));
+assert(isequal(size(simulation.packet_timestamp_s), [N, 1]));
+assert(isequal(size(simulation.packet_age_s), [N, 1]));
+assert(isequal(size(simulation.packet_valid), [N, 1]) && islogical(simulation.packet_valid));
 assert(all(isfinite(trajectory.position_m), "all"));
 assert(all(isfinite(trajectory.velocity_mps), "all"));
 assert(all(isfinite(trajectory.acceleration_mps2), "all"));
-assert(all(isfinite(simulation.command_xy_m), "all"));
-assert(all(isfinite(simulation.position_xy_m), "all"));
+assert(all(isfinite(simulation.zoh_command_xy_m), "all"));
+assert(all(isfinite(simulation.cv_command_xy_m), "all"));
+assert(all(isfinite(simulation.zoh_position_xy_m), "all"));
+assert(all(isfinite(simulation.cv_position_xy_m), "all"));
+assert(all(isfinite(simulation.packet_timestamp_s)) && all(isfinite(simulation.packet_age_s)));
 end
 
 function close_models(paths)
@@ -105,5 +118,8 @@ if bdIsLoaded(paths.systemModelName)
 end
 if bdIsLoaded(paths.plantModelName)
     close_system(paths.plantModelName, 0);
+end
+if bdIsLoaded(paths.communicationModelName)
+    close_system(paths.communicationModelName, 0);
 end
 end
