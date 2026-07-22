@@ -19,6 +19,11 @@ plantInput = [char(paths.plantModelName) '/command_xy_m'];
 plantOutput = [char(paths.plantModelName) '/position_xy_m'];
 communicationInput = [char(paths.communicationModelName) '/position_xy_m'];
 communicationVelocity = [char(paths.communicationModelName) '/velocity_mps'];
+zohCommand = [char(paths.communicationModelName) '/zoh_command_xy_m'];
+cvCommand = [char(paths.communicationModelName) '/cv_command_xy_m'];
+packetTimestamp = [char(paths.communicationModelName) '/packet_timestamp_s'];
+packetAge = [char(paths.communicationModelName) '/packet_age_s'];
+packetValid = [char(paths.communicationModelName) '/packet_valid'];
 communicationModelBlock = [char(paths.systemModelName) '/sampled_communication'];
 zohPlant = [char(paths.systemModelName) '/zoh_first_order_2d'];
 cvPlant = [char(paths.systemModelName) '/cv_first_order_2d'];
@@ -26,6 +31,11 @@ verify_port(plantInput, "input");
 verify_port(plantOutput, "output");
 verify_port(communicationInput, "communication position input", "m");
 verify_port(communicationVelocity, "communication velocity input", "m/s");
+verify_port(zohCommand, "ZOH command", "m");
+verify_port(cvCommand, "CV command", "m");
+verify_scalar_port(packetTimestamp, "packet timestamp", "s", "double");
+verify_scalar_port(packetAge, "packet age", "s", "double");
+verify_scalar_port(packetValid, "packet validity", "", "boolean");
 verify_model_ports(communicationModelBlock, 2, 5, "communication Model Reference");
 verify_model_ports(zohPlant, 1, 1, "ZOH plant Model Reference");
 verify_model_ports(cvPlant, 1, 1, "CV plant Model Reference");
@@ -41,6 +51,8 @@ assert(strcmp(get_param(paths.systemModelName, "Solver"), "ode4"), ...
     "The top-level model must use the ode4 solver.");
 assert(strcmp(get_param(communicationModelBlock, "ModelName"), paths.communicationModelName), ...
     "The top-level model must reference sampled_communication.");
+assert(strcmp(get_param(paths.communicationModelName, "ParameterArgumentNames"), ...
+    "sample_period_s,delay_s"), "Communication model arguments are not stable.");
 info = struct("plant", paths.plant, "communication", paths.communication, "system", paths.system, ...
     "input_dimension", 2, "output_dimension", 2, "unit", "m", "data_type", "double", ...
     "sample_time", -1, "plant_state_sample_time", 0, "solver", "ode4");
@@ -56,6 +68,7 @@ assert(strcmp(get_param(blockPath, "OutDataTypeStr"), "double"), ...
     "%s port must have double type.", role);
 assert(strcmp(get_param(blockPath, "Unit"), expectedUnit), ...
     "%s port has an unexpected unit.", role);
+verify_sample_time(blockPath, role);
 end
 
 function verify_model_ports(blockPath, inputCount, outputCount, role)
@@ -67,6 +80,16 @@ end
 function verify_sample_time(blockPath, role)
 sampleTime = string(get_param(blockPath, "SampleTime"));
 assert(sampleTime == "-1", "%s must have inherited sample time -1.", role);
+end
+
+function verify_scalar_port(blockPath, role, expectedUnit, expectedType)
+assert(strcmp(get_param(blockPath, "PortDimensions"), "1"), ...
+    "%s port must be scalar.", role);
+assert(strcmp(get_param(blockPath, "OutDataTypeStr"), expectedType), ...
+    "%s port has an unexpected data type.", role);
+assert(strcmp(get_param(blockPath, "Unit"), expectedUnit), ...
+    "%s port has an unexpected unit.", role);
+verify_sample_time(blockPath, role);
 end
 
 function close_new_models(paths, plantWasLoaded, communicationWasLoaded, systemWasLoaded)

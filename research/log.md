@@ -105,14 +105,6 @@
 
 ## 2026-07-15: 最終監査P2修正
 
-## 2026-07-22: Issue #5 サンプル値通信とZOH/CV
-
-- 目的: 連続目標位置・解析速度を独立通信Model Referenceへ入力し、同じ最新packetからZOH/CV指令とpacket diagnosticsを生成して、同一simulation内で2方式のplant出力を取得する。
-- 設計判断: packetはtimestamp、sampled position、sampled velocityを一体として固定長ring bufferへ保持する。時刻`t`では`t_k+L<=t`を満たす最大timestampを選択し、exact boundaryは到着済みとする。ZOH/CVとtimestamp・validityは同じ選択結果を共有する。
-- CV契約: 外挿時間は名目遅延`L`ではなく、`current_time-packet_timestamp`とする。startupでは最初のpacket到着前をinvalid、timestamp/ageを0、ZOH/CVをゼロとする。
-- 境界: MATLABはconfig、timegrid、trajectory、SimulationInput、結果schemaを担当し、Simulinkはsampling、固定遅延、packet選択、ZOH/CV、plant sample-time関係を担当する。plant interfaceと`time_constant_s`は変更しない。
-- 検証: MATLAB R2025bでbuilder、通信fixture 3件、unit 15件、model 12件、integration 4件、smokeを実行した。metrics、RMSE、sweep、結果保存、作図、random軌道は実装しない。
-
 - 目的: configの型契約とSimulink sample-time/dimension契約に関するP2指摘2件だけを修正する。
 - config契約: `trajectory.type`と`simulation.solver`をnonmissing string scalarに限定し、許可値をそれぞれ`circle`/`lissajous_1_2`と`ode4`の完全一致に限定した。default configからdispatcherまで同じ型契約を通過することをunit testで確認した。
 - model契約: R2025b Update 5で実取得したInport/Outportの`SampleTime=-1`、State-Space blockのcompiled sample time `[0 0]`、top-level solver `ode4`を`validate_models`とmodel testへ反映した。未対応のState-Space `SampleTime` parameterは使用していない。
@@ -120,3 +112,9 @@
 - 回帰結果: unit 15件、model 9件、integration 4件、smoke test、checkcode、run_project三形式、path復元、open model cleanup、model hash不変を通過した。
 - 解析回帰: `T=0.2 s`、定値入力`[1, 0.5]`で、`dt=0.01 s`の最大誤差`1.9976097331841913e-08`、`dt=0.005 s`の最大誤差`1.2227420187471694e-09`、誤差比`0.061210255358443696`。既存測定値から悪化していない。
 - 未実施: 通信遅延、packet sampling、ZOH、CV、metrics、補償効果。
+## 2026-07-22: Issue #5 サンプル値通信とZOH/CV
+
+- 目的: 既存実装のsampling時刻保証、packet buffer上限guard、通信schema test、正本文書をreview指摘に合わせて修正する。
+- 設計判断: `sample_period_s / fixed_step_s`を正の整数に必須化し、`sample_period_s < fixed_step_s`と非整数比を`teleopDelay:InvalidSampleAlignment`で拒否する。sampling値は実行時のsolver入力と一致する離散境界だけを受け付ける。
+- buffer契約: 固定長1024 packet bufferに対し、`ceil(delay_s/sample_period_s)+1`の必要履歴数が容量を超える条件を`teleopDelay:CommunicationBufferOverflow`で拒否する。境界値は許可し、浮動小数点近傍の整数比は丸めてexact arrival semanticsを維持する。
+- 検証: sampling alignment、非整数比、`sample_period_s < fixed_step_s`、解析的packet timestamp/age/ZOH/CV、buffer境界、model metadata、runtime cleanupを追加検証する。

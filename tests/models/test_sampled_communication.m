@@ -23,11 +23,25 @@ verifyEqual(testCase, simulation.packet_age_s(boundary), 0.10, AbsTol=1e-12);
 verifyEqual(testCase, simulation.zoh_command_xy_m(boundary,:), trajectory.position_m(1,:), AbsTol=1e-12);
 verifyEqual(testCase, simulation.cv_command_xy_m(boundary,:), trajectory.position_m(boundary,:), AbsTol=1e-10);
 valid = simulation.packet_valid;
-verifyEqual(testCase, simulation.packet_timestamp_s(valid), simulation.packet_timestamp_s(valid), AbsTol=0);
-verifyTrue(testCase, all(diff(simulation.packet_timestamp_s(valid)) >= -1e-12));
-verifyTrue(testCase, all(simulation.packet_age_s(valid) >= -1e-12));
-verifyEqual(testCase, simulation.packet_timestamp_s(valid), ...
-    simulation.packet_timestamp_s(valid), AbsTol=0);
+expectedTimestamp = zeros(size(simulation.time_s));
+expectedValid = false(size(simulation.time_s));
+for index = 1:numel(simulation.time_s)
+    availableTime = simulation.time_s(index) - config.communication.delay;
+    if availableTime >= -1e-12
+        expectedTimestamp(index) = max(0, floor((availableTime + 1e-12) / ...
+            config.communication.sample_period) * config.communication.sample_period);
+        expectedValid(index) = true;
+    end
+end
+verifyEqual(testCase, simulation.packet_valid, expectedValid);
+verifyEqual(testCase, simulation.packet_timestamp_s, expectedTimestamp, AbsTol=1e-12);
+expectedAge = zeros(size(simulation.time_s));
+expectedAge(valid) = simulation.time_s(valid) - expectedTimestamp(valid);
+verifyEqual(testCase, simulation.packet_age_s, expectedAge, AbsTol=1e-12);
+packetPosition = trajectory.position_m(1,:) + expectedTimestamp * velocity;
+verifyEqual(testCase, simulation.zoh_command_xy_m(valid,:), packetPosition(valid,:), AbsTol=1e-12);
+expectedCv = packetPosition + simulation.packet_age_s * velocity;
+verifyEqual(testCase, simulation.cv_command_xy_m(valid,:), expectedCv(valid,:), AbsTol=1e-10);
 
 holdIndex = find(simulation.time_s >= 0.10 & simulation.time_s < 0.15);
 verifyEqual(testCase, simulation.zoh_command_xy_m(holdIndex,:), ...
@@ -54,6 +68,18 @@ config = teleopdelay.config.default_config();
 config.communication.sample_period = 0;
 verifyRejected(testCase, @() teleopdelay.config.validate_config(config));
 config = teleopdelay.config.default_config();
+config.communication.sample_period = 0.055;
+verifyError(testCase, @() teleopdelay.config.validate_config(config), ...
+    'teleopDelay:InvalidSampleAlignment');
+config = teleopdelay.config.default_config();
+config.communication.sample_period = 0.005;
+verifyError(testCase, @() teleopdelay.config.validate_config(config), ...
+    'teleopDelay:InvalidSampleAlignment');
+config = teleopdelay.config.default_config();
+config.simulation.fixed_step = 0.005;
+verifyError(testCase, @() teleopdelay.config.validate_config(config), ...
+    'teleopDelay:InvalidFixedStep');
+config = teleopdelay.config.default_config();
 config.communication.delay = -1;
 verifyRejected(testCase, @() teleopdelay.config.validate_config(config));
 paths = teleopdelay.simulink.model_paths(project_root());
@@ -74,6 +100,20 @@ verifyError(testCase, @() teleopdelay.simulink.create_simulation_input(paths, ..
     teleopdelay.config.default_config(), bad), 'teleopDelay:InvalidTrajectoryValue');
 end
 
+function testCommunicationBufferBoundary(testCase)
+config = teleopdelay.config.default_config();
+capacity = teleopdelay.config.communication_buffer_capacity();
+config.communication.sample_period = config.simulation.fixed_step;
+config.communication.delay = (capacity - 1) * config.communication.sample_period;
+verifyTrue(testCase, teleopdelay.config.validate_config(config));
+config.communication.delay = capacity * config.communication.sample_period;
+verifyError(testCase, @() teleopdelay.config.validate_config(config), ...
+    'teleopDelay:CommunicationBufferOverflow');
+config.communication.delay = (capacity - 1 + 1e-6) * config.communication.sample_period;
+verifyError(testCase, @() teleopdelay.config.validate_config(config), ...
+    'teleopDelay:CommunicationBufferOverflow');
+end
+
 function testCommunicationModelInterface(testCase)
 paths = teleopdelay.simulink.model_paths(project_root());
 load_system(paths.communication);
@@ -86,6 +126,24 @@ verifyEqual(testCase, get_param([char(paths.systemModelName) '/sampled_communica
     [2 5 0 0 0 0 0 0 0 0]);
 verifyEqual(testCase, string(get_param([char(paths.communicationModelName) '/position_xy_m'], 'Unit')), "m");
 verifyEqual(testCase, string(get_param([char(paths.communicationModelName) '/velocity_mps'], 'Unit')), "m/s");
+for blockName = ["zoh_command_xy_m", "cv_command_xy_m"]
+    blockPath = [char(paths.communicationModelName) '/' char(blockName)];
+    verifyEqual(testCase, string(get_param(blockPath, 'PortDimensions')), "2");
+    verifyEqual(testCase, string(get_param(blockPath, 'OutDataTypeStr')), "double");
+    verifyEqual(testCase, string(get_param(blockPath, 'Unit')), "m");
+    verifyEqual(testCase, string(get_param(blockPath, 'SampleTime')), "-1");
+end
+for blockName = ["packet_timestamp_s", "packet_age_s"]
+    blockPath = [char(paths.communicationModelName) '/' char(blockName)];
+    verifyEqual(testCase, string(get_param(blockPath, 'PortDimensions')), "1");
+    verifyEqual(testCase, string(get_param(blockPath, 'OutDataTypeStr')), "double");
+    verifyEqual(testCase, string(get_param(blockPath, 'Unit')), "s");
+    verifyEqual(testCase, string(get_param(blockPath, 'SampleTime')), "-1");
+end
+validityPath = [char(paths.communicationModelName) '/packet_valid'];
+verifyEqual(testCase, string(get_param(validityPath, 'PortDimensions')), "1");
+verifyEqual(testCase, string(get_param(validityPath, 'OutDataTypeStr')), "boolean");
+verifyEqual(testCase, string(get_param(validityPath, 'SampleTime')), "-1");
 clear cleanup;
 close_models(paths);
 end

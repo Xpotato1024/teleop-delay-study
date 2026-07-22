@@ -22,6 +22,8 @@ verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
 verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
 verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
+verifyEqual(testCase, evalin('base', 'exist(''sample_period_s'', ''var'')'), 0);
+verifyEqual(testCase, evalin('base', 'exist(''delay_s'', ''var'')'), 0);
 pathBefore = path;
 addpath(root);
 cleanupPath = onCleanup(@() path(pathBefore));
@@ -38,6 +40,8 @@ verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
 verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
 verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
+verifyEqual(testCase, evalin('base', 'exist(''sample_period_s'', ''var'')'), 0);
+verifyEqual(testCase, evalin('base', 'exist(''delay_s'', ''var'')'), 0);
 end
 
 function testNamedLoggingContract(testCase)

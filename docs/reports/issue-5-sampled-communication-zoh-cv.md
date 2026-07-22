@@ -32,3 +32,10 @@
 MATLAB R2025b Update 5 / Simulinkで、explicit builder、focused communication model tests 3件、unit 15件、model 12件、integration 4件、smoke testを実行し、全件成功した。`run_project`の無出力・一出力・二出力、path復元、model cleanup、base workspace非残留、runtime model hash不変もintegration/smokeで確認した。
 
 未実施範囲はIssueの指定どおり、RMSE・改善率・parameter sweep・結果保存・作図・random軌道・packet loss/jitter・実ネットワークである。
+
+## ChatGPT-side review対応
+
+- P1-1: Preferred方式ではなくminimal alternativeを採用した。`sample_period_s / fixed_step_s`を正の整数、`simulation.fixed_step == simulation.dt`、`sample_period_s >= fixed_step_s`としてconfigで拒否する。これによりpacket timestampとsampling時のposition・velocityの対応を固定step境界に限定する。
+- P2-1: `research/log.md`の既存P2 entry本文を見出し配下へ戻し、Issue #5 entryはファイル末尾へ追記した。architectureのIssue #2 schema記述と章番号も修正した。
+- P2-2: packet buffer容量1024に対して`ceil(delay_s / sample_period_s) + 1 <= 1024`をguardする。境界値は許可し、超過は`teleopDelay:CommunicationBufferOverflow`で拒否する。整数近傍の丸めはexact arrival semanticsを維持するために限定的に行う。
+- P2-3: tautological timestamp testを削除し、各時刻の解析的timestamp、validity、age、packet位置、ZOH、CVを直接比較する。communication outputのdimension、type、unit、sample timeとmodel argument metadataも固定した。
