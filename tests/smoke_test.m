@@ -72,7 +72,11 @@ for trajectoryType = ["circle", "lissajous_1_2"]
     trajectory = teleopdelay.trajectory.generate(time_s, caseConfig.trajectory);
     simulationInput = teleopdelay.simulink.create_simulation_input(paths, caseConfig, trajectory);
     simulation = teleopdelay.simulink.run_case(simulationInput, paths, caseConfig);
-    assert_output(struct("config", caseConfig, "trajectory", trajectory, "simulation", simulation), trajectoryType);
+    evaluation = teleopdelay.metrics.build_evaluation_window(caseConfig, trajectory, simulation);
+    tracking = teleopdelay.metrics.tracking_metrics(caseConfig, trajectory, simulation, evaluation);
+    evaluation = merge_structs(evaluation, tracking);
+    assert_output(struct("config", caseConfig, "trajectory", trajectory, ...
+        "simulation", simulation, "evaluation", evaluation), trajectoryType);
     assert(~bdIsLoaded(paths.systemModelName) && ~bdIsLoaded(paths.communicationModelName) && ~bdIsLoaded(paths.plantModelName));
 end
 
@@ -82,7 +86,7 @@ fprintf("smoke_test passed.\n");
 end
 
 function assert_output(output, trajectoryType)
-assert(isstruct(output) && all(isfield(output, ["config", "trajectory", "simulation"])));
+assert(isstruct(output) && all(isfield(output, ["config", "trajectory", "simulation", "evaluation"])));
 assert(strcmp(string(output.trajectory.type), string(trajectoryType)));
 trajectory = output.trajectory;
 simulation = output.simulation;
@@ -93,12 +97,14 @@ assert(isequal(size(trajectory.velocity_mps), [N, 2]));
 assert(isequal(size(trajectory.acceleration_mps2), [N, 2]));
 assert(isequal(size(simulation.time_s), [N, 1]));
 required = ["zoh_command_xy_m", "cv_command_xy_m", "zoh_position_xy_m", ...
-    "cv_position_xy_m", "packet_timestamp_s", "packet_age_s", "packet_valid"];
+    "cv_position_xy_m", "reference_position_xy_m", "packet_timestamp_s", ...
+    "packet_age_s", "packet_valid"];
 assert(all(isfield(simulation, required)));
 assert(isequal(size(simulation.zoh_command_xy_m), [N, 2]));
 assert(isequal(size(simulation.cv_command_xy_m), [N, 2]));
 assert(isequal(size(simulation.zoh_position_xy_m), [N, 2]));
 assert(isequal(size(simulation.cv_position_xy_m), [N, 2]));
+assert(isequal(size(simulation.reference_position_xy_m), [N, 2]));
 assert(isequal(size(simulation.packet_timestamp_s), [N, 1]));
 assert(isequal(size(simulation.packet_age_s), [N, 1]));
 assert(isequal(size(simulation.packet_valid), [N, 1]) && islogical(simulation.packet_valid));
@@ -109,6 +115,7 @@ assert(all(isfinite(simulation.zoh_command_xy_m), "all"));
 assert(all(isfinite(simulation.cv_command_xy_m), "all"));
 assert(all(isfinite(simulation.zoh_position_xy_m), "all"));
 assert(all(isfinite(simulation.cv_position_xy_m), "all"));
+assert(all(isfinite(simulation.reference_position_xy_m), "all"));
 assert(all(isfinite(simulation.packet_timestamp_s)) && all(isfinite(simulation.packet_age_s)));
 end
 
@@ -121,5 +128,13 @@ if bdIsLoaded(paths.plantModelName)
 end
 if bdIsLoaded(paths.communicationModelName)
     close_system(paths.communicationModelName, 0);
+end
+end
+
+function combined = merge_structs(first, second)
+combined = first;
+names = fieldnames(second);
+for index = 1:numel(names)
+    combined.(names{index}) = second.(names{index});
 end
 end

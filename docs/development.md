@@ -188,7 +188,21 @@ git diff --check
 
 先頭のbuilder commandだけが追跡済み`.slx`を更新する明示的なmodel保守操作である。通常の`run_project`、`smoke_test`、各testはmodelを再生成・保存しない。modelがない場合、runtimeは`teleopDelay:MissingModel`を返す。builder実行後に`.slx`が更新された場合だけGit差分が生じる。`*.slxc`、`slprj/`、`*.slx.bak`は中間生成物または退避ファイルとして追跡しない。
 
-`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`を持ち、simulationは`time_s`、ZOH/CVのcommand・plant position、packet timestamp・age・validityを持つ。`time_constant_s`、`sample_period_s`、`delay_s`は`SimulationInput.setVariable(...,Workspace='teleop_delay_system')`でcase単位に渡し、base workspaceへassignしない。
+`run_project`は`src/`だけを一時的にMATLAB pathへ追加し、呼出元のpathを復元する。出力は`config`、`trajectory`、`simulation`、`evaluation`を持ち、simulationは`time_s`、ZOH/CV/referenceのcommand・plant position、packet timestamp・age・validityを持つ。`time_constant_s`、`sample_period_s`、`delay_s`は`SimulationInput.setVariable(...,Workspace='teleop_delay_system')`でcase単位に渡し、base workspaceへassignしない。
+
+## 12. Issue #7 focused検証
+
+reference/evaluation/metricsの変更では、次の順で実行する。
+
+```powershell
+matlab -batch "addpath('src'); c=teleopdelay.config.default_config(); p=teleopdelay.simulink.model_paths(pwd); teleopdelay.simulink.build_models(p,c)"
+matlab -batch "addpath('src'); results=runtests('tests/unit/test_metrics.m'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/models/test_reference_plant.m'); assertSuccess(results)"
+```
+
+`test_reference_plant`のzero-delay fixtureは、`sample_period=fixed_step`かつ`delay=0`でZOH/CV commandが同一時刻の連続目標sampleに一致すること、reference plantが円軌道の一次遅れ解析解へsolver tolerance内で一致すること、ZOH/CV/referenceのplant出力関係を確認する。referenceの解析解誤差、solver-stage packet reconstructionとの誤差は実行時に測定して報告する。
+
+Issue #7後の公開simulation schemaは、`time_s`、5つの`N x 2` position/command signal、3つのpacket diagnostics、`solver`、`fixed_step_s`である。Datasetは8つの名前付きelementを完全一致で検証し、Dataset順序には依存しない。`run_project`後の`output.evaluation`はnominal/sample境界とmetricsを持つ。
 
 ### 通信Model Referenceのbuilderと検証
 

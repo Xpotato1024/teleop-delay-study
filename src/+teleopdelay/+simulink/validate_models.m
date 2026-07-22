@@ -27,18 +27,24 @@ packetValid = [char(paths.communicationModelName) '/packet_valid'];
 communicationModelBlock = [char(paths.systemModelName) '/sampled_communication'];
 zohPlant = [char(paths.systemModelName) '/zoh_first_order_2d'];
 cvPlant = [char(paths.systemModelName) '/cv_first_order_2d'];
+referencePlant = [char(paths.systemModelName) '/reference_first_order_2d'];
 verify_port(plantInput, "input");
 verify_port(plantOutput, "output");
 verify_port(communicationInput, "communication position input", "m");
 verify_port(communicationVelocity, "communication velocity input", "m/s");
 verify_port(zohCommand, "ZOH command", "m");
 verify_port(cvCommand, "CV command", "m");
+referenceOutput = [char(paths.systemModelName) '/reference_position_xy_m'];
+verify_port(referenceOutput, "reference position output", "m");
 verify_scalar_port(packetTimestamp, "packet timestamp", "s", "double");
 verify_scalar_port(packetAge, "packet age", "s", "double");
 verify_scalar_port(packetValid, "packet validity", "", "boolean");
 verify_model_ports(communicationModelBlock, 2, 5, "communication Model Reference");
 verify_model_ports(zohPlant, 1, 1, "ZOH plant Model Reference");
 verify_model_ports(cvPlant, 1, 1, "CV plant Model Reference");
+verify_model_ports(referencePlant, 1, 1, "reference plant Model Reference");
+verify_direct_reference_connection(referencePlant, ...
+    [char(paths.systemModelName) '/position_xy_m']);
 verify_sample_time(plantInput, "plant input");
 verify_sample_time(plantOutput, "plant output");
 stateBlock = [char(paths.plantModelName) '/first_order_state_space'];
@@ -56,9 +62,18 @@ assert(strcmp(get_param(paths.communicationModelName, "ParameterArgumentNames"),
 verify_communication_parameter_metadata(paths.communicationModelName);
 verify_instance_parameter_mapping(communicationModelBlock, ...
     ["sample_period_s", "delay_s"], "communication Model Reference");
+ plantBlocks = {zohPlant, cvPlant, referencePlant};
+ for blockIndex = 1:numel(plantBlocks)
+     blockPath = plantBlocks{blockIndex};
+     assert(strcmp(get_param(blockPath, "ModelName"), paths.plantModelName), ...
+        "All plant instances must reference first_order_2d.");
+    verify_instance_parameter_mapping(blockPath, "time_constant_s", ...
+        "plant Model Reference");
+end
 info = struct("plant", paths.plant, "communication", paths.communication, "system", paths.system, ...
     "input_dimension", 2, "output_dimension", 2, "unit", "m", "data_type", "double", ...
-    "sample_time", -1, "plant_state_sample_time", 0, "solver", "ode4");
+    "sample_time", -1, "plant_state_sample_time", 0, "solver", "ode4", ...
+    "plant_instance_count", 3, "reference_output", referenceOutput);
 clear cleanup;
 close_new_models(paths, plantWasLoaded, communicationWasLoaded, systemWasLoaded);
 end
@@ -77,6 +92,9 @@ end
 end
 
 function verify_instance_parameter_mapping(blockPath, names, role)
+if ischar(names) || (isstring(names) && isscalar(names))
+    names = string(names);
+end
 parameters = get_param(blockPath, "InstanceParameters");
 for name = names
     index = find(strcmp(string({parameters.Name}), name), 1);
@@ -84,6 +102,14 @@ for name = names
     assert(strcmp(string(parameters(index).Value), name), ...
         "%s instance parameter %s must map by the same name.", role, name);
 end
+end
+
+function verify_direct_reference_connection(referencePlant, sourceBlock)
+connections = get_param(referencePlant, "PortConnectivity");
+assert(~isempty(connections) && connections(1).SrcBlock ~= -1, ...
+    "The reference plant input must have a source.");
+assert(strcmp(getfullname(connections(1).SrcBlock), sourceBlock), ...
+    "The reference plant must be connected directly to position_xy_m.");
 end
 
 function verify_port(blockPath, role, expectedUnit)

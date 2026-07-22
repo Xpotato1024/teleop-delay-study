@@ -10,7 +10,7 @@
 
 ## 比較する系
 
-1. 通信遅延なしのpacketized command
+1. 通信を通さない連続指令のreference plant
 2. 通信遅延あり・ゼロ次ホールド（ZOH）
 3. 通信遅延あり・定速度デッドレコニング（CV）
 
@@ -18,7 +18,25 @@
 
 ## 現在の状態
 
-現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、並列した一次遅れplant、headless simulation、出力loggingまでを実装しています。評価指標、parameter sweep、実験、最終図は現時点では未実装であり、後続PRの対象です。
+現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、ZOH/CV/referenceの3つの一次遅れplant、headless simulation、出力logging、評価window、追従誤差metricsまでを実装しています。parameter sweep、CSV/MAT保存、作図、境界解析は後続Issueの対象です。
+
+`run_project()`の公開outputは`config`、`trajectory`、`simulation`、`evaluation`です。`simulation`は次のschemaを持ちます。
+
+```text
+time_s                    N x 1 double [s]
+zoh_command_xy_m          N x 2 double [m]
+cv_command_xy_m           N x 2 double [m]
+zoh_position_xy_m         N x 2 double [m]
+cv_position_xy_m          N x 2 double [m]
+reference_position_xy_m   N x 2 double [m]
+packet_timestamp_s        N x 1 double [s]
+packet_age_s              N x 1 double [s]
+packet_valid              N x 1 logical
+solver                    string scalar
+fixed_step_s              scalar double [s]
+```
+
+既定評価は`total_cycles=10`、`warmup_cycles=2`である。nominal区間は`[2*period_s, 10*period_s]`、metricsに使うsampleはnominal start以上の最初からnominal end以下の最後までとし、nominal境界と実sample境界を`evaluation`へ記録します。
 
 ## 必要環境
 
@@ -61,10 +79,12 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 ├── src/+teleopdelay/
 │   ├── +app/
 │   ├── +config/
+│   ├── +metrics/
 │   ├── +timegrid/
 │   ├── +trajectory/
 │   └── +simulink/
 ├── models/
+│   ├── communication/sampled_communication.slx
 │   ├── plant/first_order_2d.slx
 │   └── system/teleop_delay_system.slx
 ├── tests/

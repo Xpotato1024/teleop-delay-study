@@ -34,6 +34,8 @@ verifyEqual(testCase, statusOnly, 0);
 verifyEqual(testCase, statusWithOutput, 0);
 verifyEqual(testCase, statusWithOutputAgain, 0);
 verifyTrue(testCase, isfield(output, 'simulation'));
+verifyTrue(testCase, isfield(output, 'evaluation'));
+verify_evaluation_schema(testCase, output);
 clear cleanupPath;
 verifyEqual(testCase, path, pathBefore);
 verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
@@ -42,6 +44,31 @@ verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''sample_period_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''delay_s'', ''var'')'), 0);
+end
+
+function verify_evaluation_schema(testCase, output)
+evaluation = output.evaluation;
+required = ["period_s", "total_cycles", "warmup_cycles", ...
+    "nominal_start_s", "nominal_end_s", "sample_start_s", ...
+    "sample_end_s", "sample_count", "mask", "rmse_zoh_m", ...
+    "rmse_cv_m", "nrmse_zoh", "nrmse_cv", "max_error_zoh_m", ...
+    "max_error_cv_m", "performance_ratio", "improvement_percent", ...
+    "mean_packet_age_s", "omega_delay", "omega_mean_packet_age", ...
+    "omega_time_constant", "omega_sample_period"];
+verifyTrue(testCase, all(isfield(evaluation, required)));
+verifyClass(testCase, evaluation.mask, 'logical');
+verifySize(testCase, evaluation.mask, [numel(output.simulation.time_s), 1]);
+verifyEqual(testCase, evaluation.sample_count, double(nnz(evaluation.mask)));
+verifyEqual(testCase, evaluation.sample_start_s, ...
+    output.simulation.time_s(find(evaluation.mask, 1)), AbsTol=0);
+verifyEqual(testCase, evaluation.sample_end_s, ...
+    output.simulation.time_s(find(evaluation.mask, 1, 'last')), AbsTol=0);
+for name = required
+    value = evaluation.(char(name));
+    if ~strcmp(name, "mask")
+        verifyTrue(testCase, isscalar(value) && isreal(value) && isfinite(value));
+    end
+end
 end
 
 function testNamedLoggingContract(testCase)
@@ -59,7 +86,8 @@ simulationOutput = sim(simulationInput);
 names = cellstr(simulationOutput.yout.getElementNames());
 names = names(:).';
 verifyEqual(testCase, sort(names), sort({'zoh_command_xy_m', 'cv_command_xy_m', 'zoh_position_xy_m', ...
-    'cv_position_xy_m', 'packet_timestamp_s', 'packet_age_s', 'packet_valid'}));
+    'cv_position_xy_m', 'reference_position_xy_m', 'packet_timestamp_s', ...
+    'packet_age_s', 'packet_valid'}));
 verifyError(testCase, @() teleopdelay.simulink.validate_logging_names({'zoh_command_xy_m'}), ...
     'teleopDelay:InvalidLoggingContract');
 verifyError(testCase, @() teleopdelay.simulink.validate_logging_names( ...
