@@ -141,3 +141,15 @@ matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_
 [`LICENSE`](LICENSE)を参照してください。第三者資産を導入する場合、そのディレクトリに追加のLICENSEまたはNOTICEが含まれることがあります。
 
 汎用MATLAB作業規則は、内製の`skills/matlab-engineering/`にあります。本研究固有の規則は`skills/teleop-delay-matlab/`にあります。検証済み上流MATLAB packageは現在追跡していません。
+
+## Issue #8 標準40 case
+
+標準実験は `circle` と `lissajous_1_2`、`dt = fixed step = 0.005 s`、sample period `0.020 s`、plant time constant `0.10 s`、delay `{0, 0.10, 0.20, 0.40, 0.50} s`、omega `{0.5, 1.0, 2.0, 4.0} rad/s`、total cycles `10`、warm-up cycles `2`、solver `ode4` の40 caseです。trajectory amplitudeは既存default configの値を使用します。
+
+cleanなMATLAB sessionから次を実行します。
+
+```matlab
+result = run_standard_experiment();
+```
+
+生成物は `results/generated/<experiment_id>/<run_id>/` に保存されます。complete runはaggregate CSVと全case時系列を含むMATを持ち、CSV/MATのround-trip検証後に確定します。`results/generated/` は `.gitignore` 対象です。

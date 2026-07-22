@@ -217,3 +217,33 @@ matlab -batch "addpath('src'); c=teleopdelay.config.default_config(); p=teleopde
 生成されるmodelは`models/communication/sampled_communication.slx`、`models/plant/first_order_2d.slx`、`models/system/teleop_delay_system.slx`である。focused通信検証は`matlab -batch "addpath('src'); results=runtests('tests/models/test_sampled_communication.m')"`で実行する。runtimeの`run_project`、test、smokeはmodelを再生成・保存しない。
 
 解析testでは、circleと1:2 Lissajousの解析位置・速度・加速度、plantの定値入力解析解、solver step半減を検証する。解析差分の許容値は、軌道の有限差分誤差に対してcircle `1e-7`、Lissajous速度 `2e-7`・加速度 `5e-7`、plant解析解に対して`1e-5`とした。plantの実測最大誤差とstep半減結果はPR実装報告に記録する。
+## Issue #8 focused/full test
+
+focused testはrepository rootから次で実行します。
+
+```powershell
+matlab -batch "addpath('src'); results=runtests('tests/unit/test_experiment_manifest.m'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/unit/test_experiment_aggregation_persistence.m'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/integration/test_experiment_runner.m'); assertSuccess(results)"
+```
+
+既存を含むfull testは次です。
+
+```powershell
+matlab -batch "addpath('src'); results=runtests('tests/unit'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/models'); assertSuccess(results)"
+matlab -batch "addpath('src'); results=runtests('tests/integration'); assertSuccess(results)"
+matlab -batch "addpath('tests'); c=onCleanup(@() rmpath('tests')); status=smoke_test(); assert(status==0)"
+```
+
+## Issue #8 標準実験の再現手順
+
+cleanなMATLAB sessionでrepository rootを作業基準にし、次を単独で実行します。
+
+```powershell
+matlab -batch "result=run_standard_experiment(); assert(result.run_status==\"complete\")"
+```
+
+既定の保存先は `results/generated/<experiment_id>/<run_id>/` です。保存を一時directoryへ変更する場合は `run_standard_experiment('OutputRoot', fullfile(tempdir,'teleop-delay-study-results'))` を使います。`SaveResults=false` は保存契約を検証しないfixture向けです。
+
+実行前後に `path`、`pwd`、`bdIsLoaded`、base workspaceのparameter名を確認し、model fileのSHA-256が変化していないことを確認します。標準実験のduration、評価境界、solver、fixed step、sampling周期はmanifestとMAT metadataで追跡します。

@@ -8,7 +8,9 @@ slprj/
 
 # Generated research artifacts
 results/*
-!results/.gitkeep
+!results/README.md
+!results/generated/
+results/generated/*
 
 # Devkit local metrics
 .devkit-metrics.jsonl

@@ -266,3 +266,49 @@ top-level `teleop_delay_system.slx`は通信出力をZOH/CVの2つの`first_orde
 `config.evaluation.total_cycles`と`config.evaluation.warmup_cycles`はfinite real scalarの非負整数で、`total_cycles > 0`かつ`warmup_cycles < total_cycles`を満たす。標準値は10と2である。`evaluation`は`period_s`、周期数、nominal/sample境界、`sample_count`、logical columnの`mask`を含み、そこへmetrics fieldを追加する。metrics実装はconfig、trajectory、simulationの公開schemaだけを受け取り、Simulink model構築・保存・block pathへ依存しない。
 
 参照plant、ZOH plant、CV plantは同じtracked model、同じ`time_constant_s` mapping、同じsolver/fixed step、zero初期状態を使う。reference outputは`reference_position_xy_m`（`N x 2 double`、m、inherited sample time）である。
+## Issue #8 実験runnerと保存契約
+
+`run_standard_experiment.m` はrootを基準に `src/` のpathを一時追加し、`teleopdelay.experiment.standard_manifest` で標準40 caseを生成して `run_manifest` を逐次実行します。各caseは既存の `default_config`、`validate_config`、trajectory generator、`SimulationInput`、`simulink.run_case`、評価window、metricsを再利用します。case間でbase workspace、current directory、open model、前caseのsimulation outputを共有しません。
+
+manifest schema versionは `issue8.standard.v1` です。caseは `trajectory`、`amplitude_m`、`omega_rad_s`、`delay_s`、`sample_period_s`、`time_constant_s`、`dt_s`、`fixed_step_s`、`total_cycles`、`warmup_cycles`、`solver`、`nominal_duration_s`、`expected_duration_s`、`duration_s`を持ちます。`case_id`はこれらを固定順序・`%.17g`数値表現でcanonical化した値から生成され、loop indexを含みません。出力順はtrajectory、delay、omegaのcanonical順です。
+
+`experiment_id`はschema versionとcanonical case条件全体から決定論的に生成する短い識別子です。`run_id`はUTC timestampとGit short SHA（取得不能時は `unknown`）で構成し、同じ条件の再実行を別directoryへ保存します。
+
+### aggregate table schema
+
+| 列 | 型・単位 | 意味 |
+|---|---|---|
+| `case_id` | string | canonical case識別子 |
+| `trajectory` | string | `circle` または `lissajous_1_2` |
+| `omega_rad_s` | double [rad/s] | 軌道角周波数 |
+| `delay_s` | double [s] | 通信遅延 |
+| `sample_period_s` | double [s] | packet sampling周期 |
+| `time_constant_s` | double [s] | 一次遅れplant時定数 |
+| `fixed_step_s` | double [s] | Simulink固定step |
+| `duration_s` | double [s] | 実simulation gridのendpoint |
+| `warmup_cycles` | double [cycle] | 評価から除外する周期数 |
+| `evaluation_start_s` | double [s] | `evaluation.sample_start_s` |
+| `evaluation_end_s` | double [s] | `evaluation.sample_end_s` |
+| `omega_delay` | double [-] | `omega * delay_s` |
+| `mean_packet_age_s` | double [s] | 評価sample内の平均packet age |
+| `omega_mean_packet_age` | double [-] | `omega * mean_packet_age_s` |
+| `omega_time_constant` | double [-] | `omega * time_constant_s` |
+| `omega_sample_period` | double [-] | `omega * sample_period_s` |
+| `rmse_zoh_m`, `rmse_cv_m` | double [m] | referenceに対する追従RMSE |
+| `nrmse_zoh`, `nrmse_cv` | double [-] | amplitudeで正規化したRMSE |
+| `max_error_zoh_m`, `max_error_cv_m` | double [m] | 評価区間の最大Euclidean誤差 |
+| `performance_ratio` | double [-] | `rmse_cv_m / rmse_zoh_m` |
+| `improvement_percent` | double [%] | `(1 - performance_ratio) * 100` |
+| `status` | string | 成功時は `success` |
+| `error_identifier` | string | 失敗時の元例外identifier |
+| `error_message` | string | 失敗時の元例外message |
+
+成功caseのZOH、CV、reference、packet diagnosticsは同一simulationから取得します。失敗rowは条件とerror情報を保持し、metricsをNaNにできます。
+
+### failure contract
+
+case例外はcase boundaryで捕捉して残りのcaseを継続します。1件以上失敗したrunは `complete` とせず、complete artifact名を使いません。`results/generated/<experiment_id>/failed/<run_id>/` にdiagnostic CSV/MATを保存し、最後に `teleopDelay:ExperimentIncomplete` を送出します。messageには失敗case数とdiagnostic pathを含めます。
+
+### persistence contract
+
+complete runは `<experiment_id>__aggregate.csv` と `<experiment_id>__results.mat` を一時directoryへ保存し、CSV/MATを再読込してrow数、列名、case_id、status、主要数値、manifest、metadata、全case output schemaを検証した後、同一filesystem上のfinal run directoryへrenameします。MATにはmanifest、aggregate table、execution metadata、全caseのconfig・trajectory・simulation・evaluation、run statusを保存します。一時complete artifactは失敗時に削除します。
