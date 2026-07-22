@@ -121,3 +121,29 @@
 - buffer契約: 容量は`communication_buffer_capacity()`が一元管理する1024 packetとした。必要履歴数`ceil(delay_s/sample_period_s)+1`が容量を超える条件を`teleopDelay:CommunicationBufferOverflow`で拒否し、境界値を許可した。整数近傍の丸めは浮動小数点誤差とexact arrival semanticsを考慮して限定的に行った。
 - 検証結果: MATLAB R2025b Update 5 / Simulinkでexplicit builder、focused communication 4件、unit 15件、model 13件、integration 4件、smoke testを実行し、全件成功した。sampling alignment、一定速度解析値、buffer境界とring buffer wrap、output metadata、read-only 3 model runtime、path復元、cleanup、base workspace非残留、runtime前後hash一致を確認した。
 - 未実装範囲: RMSE、改善率、parameter sweep、結果保存、作図、random軌道、packet loss/jitter、実ネットワークはIssueの指定どおり後続PRの対象とした。
+
+## 2026-07-22: Issue #7 遅延なし参照系・評価区間・追従誤差指標
+
+- 目的: Issue #5で成立したZOH/CV通信経路へ、同じplant条件の遅延なしreference plant、固定grid上の評価区間、追従誤差metricsを追加する。
+- 参照系: `position_xy_m`を通信Model Referenceへ入力する前にreference plantへ直接分岐した。ZOH/CV/referenceの3 instanceは同じ`first_order_2d.slx`と同名`time_constant_s` mappingを使用し、plant内部式・interface・初期状態は変更していない。
+- 評価区間: `period_s=2*pi/omega`、既定`total_cycles=10`、`warmup_cycles=2`を採用した。nominal endを覆う最小fixed-grid endpointをsimulation durationとし、nominal境界と実際のsample境界を分けて`evaluation`へ記録する。整数近傍の補正はmachine precision由来の限定toleranceだけにした。
+- metrics: reference出力との差からRMSE、NRMSE、最大誤差、性能比、改善率を計算する。packet age平均は評価maskかつ`packet_valid=true`だけを使用する。`omega_delay`、`omega_mean_packet_age`、`omega_time_constant`、`omega_sample_period`を無次元量として公開する。
+- zero denominator: `32*eps(max(1, abs(rmse_zoh_m), abs(rmse_cv_m)))`以下をzeroとする。両方zeroなら性能比1・改善率0、ZOHだけzeroなら`teleopDelay:UndefinedPerformanceRatio`で拒否する。任意の固定thresholdによるNaN/Inf置換は行わない。
+- 解析fixture実測: R2025b Update 5、`dt=sample_period=0.01 s`、`delay=0`、`T=0.2 s`、円軌道、duration `0.20 s`で、ZOH commandと連続目標の最大差は`0`、CV commandの最大差は`2.7755575615628914e-17`、reference plantと円軌道一次遅れ解析解の最大差は`5.24408451829661e-06`、ZOH/reference plant出力差は`0.00208928851916447`、CV/reference plant出力差は`1.044847777553759e-05`であった。解析fixtureはこれらのsolver/logging semanticsを分けたtoleranceで検証する。
+- 判断: `output.evaluation`を公開し、CSV/MAT保存、parameter sweep、figure、heatmap、境界解析、random軌道、packet loss/jitterはIssue #7へ含めない。
+- 未実施: full unit/model/integration/smokeおよび全srcのcheckcodeはこの追記時点では未実施であり、実行結果はPR報告へ確定値を追記する。
+
+## 2026-07-22: Issue #7 最終検証
+
+- 実行環境: MATLAB R2025b Update 5（`25.2.0.3177638`）/ Simulink。
+- 検証: explicit builder成功、focused metrics 7/7、focused reference 2/2、full unit 22/22、full model 15/15、full integration 4/4、smoke成功、全src 17 filesの`checkcode -id` 0件、`git diff --check`成功。
+- 標準runtime: duration `62.840000000000003 s`、nominal `[12.566370614359172, 62.831853071795862] s`、sample `[12.57, 62.829999999999998] s`、sample count `5027`。`reference_position_xy_m`は`6285 x 2` finiteであった。
+- hygiene: run_project 3形式、path完全復元、3 model close、runtime前後hash不変、read-only model runtime、base workspaceの`time_constant_s`/`sample_period_s`/`delay_s`非残留を確認した。
+- 既定runtime metricsはZOH RMSE `0.12085541283838265 m`、CV RMSE `0.007563217627552481 m`、性能比 `0.062580710701527362`、改善率 `93.741928929847262 %`、mean packet age `0.12000198925827607 s`であった。これは標準契約と配線の実行確認値であり、parameter sweepや最終実験結果ではない。
+
+## 2026-07-22: Issue #7 評価契約P1/P2 follow-up
+
+- 目的: PR #12 reviewで残った、evaluation packet validityのfail-closed契約とDataset element間time alignmentを実装・検証する。
+- 判断: evaluation.mask内の`packet_valid`は全sampleでtrueを要求する。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`で拒否し、invalid sampleだけを除外して評価区間を短縮しない。評価対象`packet_age_s`は有限かつ非負とする。
+- 判断: 8つのDataset elementすべての`Values.Time`をcanonical vectorと比較する。各vectorの`N x 1 double`、有限性、厳密単調増加性を確認し、比較toleranceは`32*eps`のmachine precision由来に限定する。不一致は`teleopDelay:MisalignedLoggedSignal`、個別time vector不正は`teleopDelay:InvalidLoggedTime`とする。
+- 検証: 固定`dt=0.1 s`、`period_s=1 s`、`total_cycles=2`、`warmup_cycles=1`のunit fixtureでcircleと1:2 Lissajousを同じmask index `11:21`（sample count `11`）として確認した。小配列の全valid、全invalid、混在、負age、logged time不一致fixtureを含むfocused unitは12/12、full unitは27/27で成功した。full modelは15/15、full integrationは4/4、smoke、run_project三形式、checkcode 18 files/0 messages、git diff --checkも成功した。

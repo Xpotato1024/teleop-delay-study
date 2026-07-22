@@ -2,7 +2,7 @@ function isValid = validate_config(config)
 % validate_config  シミュレーション設定を検証する。
 
 assert(isstruct(config), 'config must be a struct.');
-requiredGroups = {'simulation', 'communication', 'plant', 'trajectory', 'random'};
+requiredGroups = {'simulation', 'communication', 'plant', 'trajectory', 'evaluation', 'random'};
 for groupIndex = 1:numel(requiredGroups)
     groupName = requiredGroups{groupIndex};
     assert(isfield(config, groupName), 'Missing config group: %s.', groupName);
@@ -16,6 +16,7 @@ assert(config.communication.delay >= 0, 'communication.delay must be nonnegative
 validateattributes(config.plant.time_constant, {'numeric'}, {'scalar', 'real', 'finite', 'positive'}, mfilename, 'plant.time_constant');
 validateattributes(config.trajectory.amplitude, {'numeric'}, {'scalar', 'real', 'finite', 'positive'}, mfilename, 'trajectory.amplitude');
 validateattributes(config.trajectory.omega, {'numeric'}, {'scalar', 'real', 'finite', 'positive'}, mfilename, 'trajectory.omega');
+validate_evaluation_config(config.evaluation);
 validateattributes(config.random.seed, {'numeric'}, {'scalar', 'real', 'finite'}, mfilename, 'random.seed');
 assert(config.random.seed >= 0 && config.random.seed == floor(config.random.seed), ...
     'random.seed must be a nonnegative integer.');
@@ -33,6 +34,26 @@ if config.simulation.solver ~= "ode4"
         "config.simulation.solver must be exactly ode4 for the foundation model.");
 end
 isValid = true;
+end
+
+function validate_evaluation_config(evaluation)
+if ~isstruct(evaluation) || ~isscalar(evaluation) || ...
+        ~all(isfield(evaluation, {'total_cycles', 'warmup_cycles'}))
+    error("teleopDelay:InvalidEvaluationConfig", ...
+        "config.evaluation must contain total_cycles and warmup_cycles.");
+end
+for name = ["total_cycles", "warmup_cycles"]
+    value = evaluation.(char(name));
+    if ~(isa(value, 'double') && isscalar(value) && isreal(value) && isfinite(value) && ...
+            value >= 0 && value == floor(value))
+        error("teleopDelay:InvalidEvaluationConfig", ...
+            "config.evaluation.%s must be a nonnegative integer.", name);
+    end
+end
+if evaluation.total_cycles <= 0 || evaluation.warmup_cycles >= evaluation.total_cycles
+    error("teleopDelay:InvalidEvaluationConfig", ...
+        "evaluation must satisfy total_cycles > 0 and 0 <= warmup_cycles < total_cycles.");
+end
 end
 
 function validate_sampling_contract(config)

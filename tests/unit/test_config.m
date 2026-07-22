@@ -5,6 +5,9 @@ end
 function testDefaultConfigSatisfiesDispatcherContract(testCase)
 config = teleopdelay.config.default_config();
 verifyTrue(testCase, teleopdelay.config.validate_config(config));
+nominalEnd = config.evaluation.total_cycles * 2 * pi / config.trajectory.omega;
+verifyEqual(testCase, config.simulation.duration, ...
+    teleopdelay.metrics.grid_aligned_duration(nominalEnd, config.simulation.dt), AbsTol=0);
 time_s = teleopdelay.timegrid.create(0.1, 0.05);
 trajectory = teleopdelay.trajectory.generate(time_s, config.trajectory);
 verifyEqual(testCase, trajectory.type, config.trajectory.type);

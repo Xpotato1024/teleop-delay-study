@@ -19,17 +19,17 @@ flowchart LR
     Z[ゼロ次ホールド]
     C[定速度予測]
     U[適用指令 u_m,L(t)]
-    G[一次遅れplant]
+    Gz[一次遅れplant（ZOH）]
+    Gc[一次遅れplant（CV）]
+    Gr[一次遅れplant（reference）]
     X[plant出力 x_m,L(t)]
-    B[方式固有のゼロ遅延基準 x_m,0(t)]
+    B[参照出力 x_ref(t)]
     E[評価指標]
 
     R --> S --> P --> D --> A --> M
-    M --> Z --> U
-    M --> C --> U
-    U --> G --> X --> E
-    R --> E
-    B --> E
+    M --> Z --> Gz --> X --> E
+    M --> C --> Gc --> X --> E
+    R --> Gr --> B --> E
 ```
 
 ## 3. 信号と予定データ契約
@@ -107,63 +107,59 @@ T\dot{\mathbf x}(t)+\mathbf x(t)=\mathbf u(t)
 
 ## 7. 参照系と評価指標
 
-ZOHとCVは、通信遅延がゼロでもsample間の挙動が異なる。このため、総追従性能と通信遅延だけの影響を別の参照系で評価する。
+ZOH、CV、referenceは同じ`first_order_2d.slx`をModel Referenceとして使用する。referenceだけは通信Model Referenceを通さず、連続目標位置を直接入力する。したがって、評価ではplant自身の追従応答と通信・指令再構成の差を同じsimulation内で比較できる。
 
-### 7.1 総追従誤差
+### 7.1 評価区間
 
-同一課題における方式間比較には、
+基本周期は`period_s = 2*pi/omega`とする。標準設定は`total_cycles=10`、`warmup_cycles=2`であり、nominal境界は次で定義する。
 
-\[
-E_{\mathrm{track},m}(L)
-=
-\frac{1}{A}
-\sqrt{\frac{1}{N}\sum_{i=1}^{N}
-\left\|\mathbf r_i-\mathbf x_{m,L,i}\right\|^2}
-\]
+```text
+nominal_start_s = warmup_cycles * period_s
+nominal_end_s   = total_cycles * period_s
+```
 
-を用いる。連続目標軌道へどの方式が良く追従するかを表す。
+simulation durationは`nominal_end_s`を覆う最小のfixed-grid endpoint、すなわち`ceil(nominal_end_s / dt) * dt`（整数近傍だけmachine precision toleranceで補正）とする。metrics sampleはnominal start以上の最初のsampleからnominal end以下の最後のsampleまでである。`evaluation`はnominal境界と実sample境界、sample count、logical column maskを公開する。必要区間を覆わないsimulationや空区間はstable errorで拒否する。
 
-### 7.2 通信遅延起因誤差
+### 7.2 追従誤差
 
-方式ごとに、同じsampling・再構成を用いた遅延ありとゼロ遅延の出力を比較する。
+各sampleの二次元誤差を
 
 \[
-E_{\mathrm{delay},m}(L)
-=
-\frac{1}{A}
-\sqrt{\frac{1}{N}\sum_{i=1}^{N}
-\left\|\mathbf x_{m,L,i}-\mathbf x_{m,0,i}\right\|^2}
+\mathbf e_{m,i}=\mathbf x_{m,i}-\mathbf x_{ref,i},\qquad
+e_{m,i}=\|\mathbf e_{m,i}\|_2
 \]
 
-これにより、方式固有のsample間再構成誤差と通信遅延の影響を混同しない。
-
-### 7.3 改善率
-
-主たる方式改善率は総追従誤差から、
+とする。評価区間内で次を計算する。
 
 \[
-R_{\mathrm{track}}(L)
-=
-1-\frac{E_{\mathrm{track,CV}}(L)}
-        {E_{\mathrm{track,ZOH}}(L)}
+\mathrm{rmse}_m=\sqrt{\frac{1}{N}\sum_i
+\left\|\mathbf x_{m,i}-\mathbf x_{ref,i}\right\|_2^2},
+\qquad
+\mathrm{nrmse}_m=\frac{\mathrm{rmse}_m}{A}
 \]
 
-とする。通信遅延penaltyの比も補助的に示せるが、分母がゼロとなる場合を明示的にguardする。
+公開fieldは`rmse_zoh_m`、`rmse_cv_m`、`nrmse_zoh`、`nrmse_cv`、`max_error_zoh_m`、`max_error_cv_m`、`performance_ratio`、`improvement_percent`である。`A`はtrajectory amplitude [m]である。RMSE、最大誤差、mean packet ageは同じ`evaluation.mask`のsample集合から計算する。
 
-最大Euclidean位置誤差を副指標とする。位相遅れは任意の診断指標とする。
+`performance_ratio = rmse_cv_m / rmse_zoh_m`、`improvement_percent = (1-performance_ratio)*100`とする。評価mask内の`packet_valid`は全sampleでtrueでなければならない。全件falseは`teleopDelay:NoValidPacketInEvaluation`、true/false混在は`teleopDelay:IncompletePacketHistoryInEvaluation`で拒否し、invalid sampleをmetricsから除外して評価区間を短縮しない。`mean_packet_age_s`はこの全validな評価sample集合から求め、評価対象の`packet_age_s`は有限かつ非負でなければならない。`omega_delay`、`omega_mean_packet_age`、`omega_time_constant`、`omega_sample_period`を併せて公開する。
+
+### 7.3 zero denominator contract
+
+zero判定のtoleranceは`32*eps(max(1, abs(rmse_zoh_m), abs(rmse_cv_m)))`というmachine precision由来の値であり、固定の大きなthresholdではない。ZOHとCVのRMSEがともにtolerance以下なら`performance_ratio=1`、`improvement_percent=0`とする。ZOHだけがtolerance以下でCVが超える場合は、NaN/Infを返さず`teleopDelay:UndefinedPerformanceRatio`で拒否する。
 
 ## 8. 評価区間と初期化
 
 起動過渡とpacket履歴不足を評価区間へ混入させない。
 
-予定方針:
+確定した契約:
 
-- 決定論的周期軌道ではwarm-up区間を計算し、評価から除外する。
-- warm-upは少なくとも`max(2*T, L + h_s)`とし、収束確認後に延長できる。
-- 通過点間の乱数軌道では、運動開始前に初期点を保持する。
-- plant初期状態と受信履歴を設定へ記録する。
+- deterministic周期軌道では`warmup_cycles`周期を評価から除外する。
+- 標準設定は全10周期、最初の2周期を除外する。
+- 起動時のplant初期状態はzero、最初のpacket到着前は`packet_valid=false`とし、過去packetの事前投入は行わない。
+- `evaluation.nominal_*`と`evaluation.sample_*`を分離して記録する。
 
-厳密なwarm-up規則は、評価指標実装前に確定するP0設計gateとする。
+### 8.1 logging time alignment
+
+Datasetの8要素すべてについて`Values.Time`を取得する。最初に取得したcanonical time vectorと各要素を、`N x 1 double`、有限、厳密単調増加、shape一致として検証し、値の比較には`32*eps(max(1, abs(t)))`のmachine precision由来toleranceだけを使う。不一致は`teleopDelay:MisalignedLoggedSignal`、個別time vectorのshape・有限性・単調性違反は`teleopDelay:InvalidLoggedTime`で拒否する。data配列をrow対応で扱うのはこの検証後に限る。
 
 ## 9. 決定論的軌道
 
@@ -207,25 +203,26 @@ Taylor展開から、定速度予測の残差は概ね、
 src/+teleopdelay/
 ├── +app/main.m
 ├── +config/{default_config,validate_config}.m
+├── +metrics/{grid_aligned_duration,build_evaluation_window,tracking_metrics}.m
 ├── +timegrid/create.m
 ├── +trajectory/{generate,circle,lissajous_1_2}.m
 └── +simulink/
     ├── {model_paths,build_models,validate_models}.m
     ├── {create_simulation_input,run_case}.m
-    └── validate_logging_names.m
+    ├── validate_logging_names.m
+    └── validate_logged_time_alignment.m
 ```
 
 `run_project.m`だけをrepository rootのpublic entry pointとする。`src/`は`run_project`の実行中だけpathへ追加し、呼出元のpathへ戻す。
 
-## 12. 未確定の設計gate
+## 12. 残る設計gate
 
 依存する実装へ進む前に、次を確定する。
 
-- warm-upと評価区間の厳密な規則
 - default値とsweep範囲
 - 数値積分法と収束判定threshold
 - 非周期軌道の正規化振幅
-- 結果schemaと保存形式
+- 結果の保存形式
 - 最小ジャーク乱数軌道の契約
 
 各判断を`research/log.md`へ追記する。
@@ -260,6 +257,12 @@ top-level modelはplant内部のblockやstateへ依存しない。Inport/Outport
 
 通信modelは同じ選択packetから、`zoh_command_xy_m`、`cv_command_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`を出力する。CVの外挿時間は`current_time-packet_timestamp_s`である。最初のpacket到着前はvalidity=false、timestamp=0、age=0、ZOH/CV=[0,0]とする。
 
-top-level `teleop_delay_system.slx`は通信出力を2つの`first_order_2d.slx` instanceへ分岐する。Dataset elementは`zoh_command_xy_m`、`cv_command_xy_m`、`zoh_position_xy_m`、`cv_position_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`の名前で取得し、順序には依存しない。MATLAB側の公開schemaは`config`、`trajectory`、`simulation`を維持し、`simulation`内に同名の`N x 1`または`N x 2`配列を公開する。旧`command_xy_m`、`position_xy_m` aliasは追加しない。
+top-level `teleop_delay_system.slx`は通信出力をZOH/CVの2つの`first_order_2d.slx` instanceへ分岐し、連続目標位置を3つ目のreference instanceへ直接入力する。Dataset elementは`zoh_command_xy_m`、`cv_command_xy_m`、`zoh_position_xy_m`、`cv_position_xy_m`、`reference_position_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`の8要素を名前で取得し、順序には依存しない。MATLAB側の公開schemaは`config`、`trajectory`、`simulation`、`evaluation`であり、`simulation`内に同名の`N x 1`または`N x 2`配列を公開する。旧`command_xy_m`、`position_xy_m` aliasは追加しない。
 
 `sample_period_s / fixed_step_s`は正の整数でなければならず、`simulation.fixed_step`は`simulation.dt`と一致しなければならない。これは現在の固定step数値モデルがsolver step内で過去の軌道値を補間せずsamplingする制限を明示的にguardするためである。`sample_period_s < fixed_step_s`、非整数比、buffer容量を超える遅延はstable error identifierで拒否する。通信packet buffer容量は1024で、必要履歴数は`ceil(delay_s / sample_period_s) + 1`以下に制限する。
+
+## 15. Issue #7 評価schema
+
+`config.evaluation.total_cycles`と`config.evaluation.warmup_cycles`はfinite real scalarの非負整数で、`total_cycles > 0`かつ`warmup_cycles < total_cycles`を満たす。標準値は10と2である。`evaluation`は`period_s`、周期数、nominal/sample境界、`sample_count`、logical columnの`mask`を含み、そこへmetrics fieldを追加する。metrics実装はconfig、trajectory、simulationの公開schemaだけを受け取り、Simulink model構築・保存・block pathへ依存しない。
+
+参照plant、ZOH plant、CV plantは同じtracked model、同じ`time_constant_s` mapping、同じsolver/fixed step、zero初期状態を使う。reference outputは`reference_position_xy_m`（`N x 2 double`、m、inherited sample time）である。

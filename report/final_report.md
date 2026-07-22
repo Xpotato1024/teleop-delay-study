@@ -16,14 +16,7 @@
 
 ### 2.1 対象システムと入出力
 
-<!--
-- システム図を掲載し、図番号・図題を付ける
-- 入力: 2次元目標軌道
-- 通信: サンプリング、固定純遅延
-- 再構成: ZOH / 定速度予測
-- 出力: 一次遅れ系の手先位置
-- 評価: 目標および方法別ゼロ遅延基準との誤差
--->
+入力は2次元連続目標位置と解析速度である。通信Model Referenceは固定sampling、固定遅延、最新packet選択を担当し、同じpacketからZOH/CV commandを生成する。top-level modelはZOH/CV/referenceの3つの`first_order_2d.slx`を呼び出し、referenceには連続目標位置を直接入力する。公開simulation schemaは8つの名前付きDataset elementと`time_s`、solver、fixed stepで構成する。
 
 ### 2.2 目標軌道
 
@@ -36,66 +29,50 @@
 
 ### 2.3 通信遅延と指令再構成
 
-<!--
-- 送信時刻 t_k
-- 到着条件 t_k + L <= t
-- ZOH式
-- CV式
-- 予測時間が t - t_k であること
--->
+送信時刻を\(t_k\)、遅延を\(L\)とし、\(t_k+L\leq t\)を満たす最新packetを用いる。ZOHは\(\mathbf r(t_k)\)、CVは\(\mathbf r(t_k)+(t-t_k)\dot{\mathbf r}(t_k)\)であり、外挿時間はpacket ageである。
 
 ### 2.4 ロボット応答モデル
 
-<!--
-- T x_dot + x = u
-- 各軸独立の仮定
-- 詳細機構・IKを捨象した理由
--->
+各軸のplantは\(T\dot{\mathbf x}+\mathbf x=\mathbf u\)で表す。同じtracked model、初期状態zero、`time_constant_s` mappingをZOH/CV/referenceで共有し、詳細な運動学・接触・力覚は対象外とする。
 
 ### 2.5 評価指標
 
-<!--
-- 総追従NRMSE
-- 方法別ゼロ遅延基準による通信起因NRMSE
-- 最大位置誤差
-- 改善率
-- 正規化量
--->
+追従誤差のreferenceは連続目標そのものではなく、同じplantへ直接入力した`reference_position_xy_m`である。評価window内でRMSE、trajectory amplitudeによるNRMSE、最大Euclidean誤差、CV/ZOH RMSE比、改善率を計算する。RMSE、最大誤差、mean packet ageは同じ評価sample集合を使用し、評価mask内のpacketは全件validでなければならない。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`、負の評価packet ageは`teleopDelay:InvalidPacketAgeInEvaluation`で拒否する。4つの無次元量\(\omega L\)、\(\omega\overline{age}\)、\(\omega T\)、\(\omega h_s\)を公開する。loggingの8要素は`Values.Time`の一致を検証してから対応付ける。
 
 ## 3. シミュレーション条件
 
 ### 3.1 仮定
 
-<!-- 固定遅延、欠損なし、jitterなし、2次元、一次遅れ、機械学習なし等。 -->
+固定遅延、packet lossなし、jitterなし、2次元直交座標、各軸独立の一次遅れ、機械学習なしを仮定する。詳細な運動学、接触、力覚、実ネットワークは対象外である。
 
 ### 3.2 初期条件と評価区間
 
-<!-- 初期手先位置、受信履歴、warm-up、評価開始・終了、周期数。 -->
+plant初期状態はzero、packet到着前はinvalidである。基本周期は`period_s=2*pi/omega`、標準設定は10周期のうち最初の2周期を除外する。nominal start/endと、fixed grid上で実際にmetricsへ使用したsample start/end、count、logical maskを`output.evaluation`へ保存する。nominal endを覆わないsimulationや空windowは拒否する。
 
 ### 3.3 パラメータ
 
 <!--
-表番号と表題を付け、dt、h_s、L、T、A、omega、seedを単位付きで示す。
-値が代表値か同定値かを区別する。
+既定設定は`dt=0.01 s`、`h_s=0.05 s`、`L=0.10 s`、`T=0.20 s`、`A=1.0 m`、`omega=1.0 rad/s`、seed `0`である。
+標準10周期のnominal endを覆うようsimulation durationをfixed gridへ切り上げる。これらは研究結果ではなく再現可能な既定条件である。
 -->
 
 ### 3.4 数値計算法
 
-<!-- ソルバー、時間刻み、収束性、MATLABバージョン。 -->
+solverは`ode4`、fixed stepは`dt`、実行環境はMATLAB R2025b Update 5 / Simulinkである。解析fixtureではcontinuous reference、ZOH packet reconstruction、CV packet reconstructionをsolver/logging semanticsに沿って別toleranceで検証する。
 
 ## 4. MATLABプログラム
 
 ### 4.1 Main Program
 
-<!-- run_projectから実験・保存・図生成までの流れ。 -->
+`run_project`はdefault configを生成・検証し、標準評価区間を覆うgrid-aligned durationを確定し、timegrid・trajectory・model validation・simulation・evaluationを順に実行する。出力は`config`、`trajectory`、`simulation`、`evaluation`である。
 
 ### 4.2 Sub Programs
 
-<!-- 軌道、通信、再構成、一次遅れ、指標、作図。 -->
+MATLAB packageはconfig、timegrid、trajectory、Simulink実行、metricsを責務分離する。Simulink builderはcommunicationと3つのplant instance、named loggingを生成する。Issue #7では保存・作図・sweepは追加しない。
 
 ### 4.3 検証
 
-<!-- 解析可能ケース、境界テスト、時間刻み収束、smoke test。 -->
+metrics unitでは評価config、period、grid rounding、境界sample inclusion、空/不足window、RMSE、NRMSE、最大誤差、比率、改善率、zero denominator、packet-valid限定平均age、非有限値・shapeを検証する。model/integrationではreference direct path、3 plant共通model/argument、8要素logging、zero-delay fixture、path復元、model cleanup、hash不変、base workspace非残留を検証する。
 
 ## 5. 実行結果
 

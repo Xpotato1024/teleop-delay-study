@@ -204,22 +204,33 @@ add_block('simulink/Ports & Subsystems/Model', [modelName '/zoh_first_order_2d']
     "Position", [390 45 555 105], "ModelName", paths.plantModelName);
 add_block('simulink/Ports & Subsystems/Model', [modelName '/cv_first_order_2d'], ...
     "Position", [390 155 555 215], "ModelName", paths.plantModelName);
-for blockName = ["zoh_first_order_2d", "cv_first_order_2d"]
+add_block('simulink/Ports & Subsystems/Model', [modelName '/reference_first_order_2d'], ...
+    "Position", [390 265 555 325], "ModelName", paths.plantModelName);
+for blockName = ["zoh_first_order_2d", "cv_first_order_2d", "reference_first_order_2d"]
     instanceParameters = get_param([modelName '/' char(blockName)], "InstanceParameters");
     instanceParameters(1).Value = 'time_constant_s';
     set_param([modelName '/' char(blockName)], "InstanceParameters", instanceParameters);
 end
 add_line(modelName, "sampled_communication/1", "zoh_first_order_2d/1", "autorouting", "on");
 add_line(modelName, "sampled_communication/2", "cv_first_order_2d/1", "autorouting", "on");
+add_line(modelName, "position_xy_m/1", "reference_first_order_2d/1", "autorouting", "on");
 log_names = ["zoh_command_xy_m", "cv_command_xy_m", "zoh_position_xy_m", ...
-    "cv_position_xy_m", "packet_timestamp_s", "packet_age_s", "packet_valid"];
+    "cv_position_xy_m", "reference_position_xy_m", "packet_timestamp_s", ...
+    "packet_age_s", "packet_valid"];
 source_ports = ["sampled_communication/1", "sampled_communication/2", ...
-    "zoh_first_order_2d/1", "cv_first_order_2d/1", ...
+    "zoh_first_order_2d/1", "cv_first_order_2d/1", "reference_first_order_2d/1", ...
     "sampled_communication/3", "sampled_communication/4", "sampled_communication/5"];
 for index = 1:numel(log_names)
     sink = [modelName '/' char(log_names(index))];
     add_block('simulink/Ports & Subsystems/Out1', sink, ...
         "Position", [650 30+index*45 680 60+index*45], "Port", num2str(index));
+    if index <= 5
+        configure_port(sink, "-1", "m");
+    elseif index <= 7
+        configure_scalar_port(sink, "-1", "s", "double");
+    else
+        configure_scalar_port(sink, "-1", "", "boolean");
+    end
     lineHandle = add_line(modelName, char(source_ports(index)), char(log_names(index) + "/1"), "autorouting", "on");
     set_param(lineHandle, "Name", char(log_names(index)));
 end
