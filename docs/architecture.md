@@ -232,7 +232,7 @@ src/+teleopdelay/
 
 ## 13. Issue #2で成立させた基盤
 
-Issue #2では、上記の研究モデル全体のうち、決定論的な軌道生成と遅延を含まない最小plant接続までを実装した。
+Issue #2では、決定論的な軌道生成と、通信遅延を含まない最小plant接続までを実装した。通信packet、ZOH/CV、評価指標、作図はこの時点の基盤には含めなかった。
 
 ```text
 src/+teleopdelay/
@@ -243,17 +243,23 @@ src/+teleopdelay/
 └── +simulink/{model_paths,build_models,create_simulation_input,run_case}.m
 ```
 
-MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行、出力schemaを担当する。Simulink側は次の2つのmodelを担当する。
+MATLAB側は設定、固定時間grid、軌道、`Simulink.SimulationInput`、simulation実行を担当し、Simulink側はplantとtop-level接続を担当した。
 
 | model | interface |
 |---|---|
 | `models/plant/first_order_2d.slx` | `command_xy_m`（2要素、double、m）を受け、`position_xy_m`（2要素、double、m）を返す。`time_constant_s`をmodel argumentとして公開する。 |
-| `models/system/teleop_delay_system.slx` | MATLAB軌道を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、commandとpositionをDataset loggingする。 |
+| `models/system/teleop_delay_system.slx` | MATLAB軌道の位置を外部入力として受け、`first_order_2d.slx`をModel Referenceで呼び出し、`command_xy_m`と`position_xy_m`をDataset loggingする。 |
 
-top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension 2、type double、unit m、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とする。実行時の`FixedStep`は`config.simulation.fixed_step`から`SimulationInput`へ渡す。packet sampling、通信遅延、ZOH、CV、metrics、作図はこの基盤に含めない。
+top-level modelはplant内部のblockやstateへ依存しない。Inport/Outportはdimension、type、unit、`SampleTime=-1`（inherited）を固定し、外部入力は固定時間gridの`timeseries`として与える。plantはState-Space blockのcompiled sample time `[0 0]`でcontinuous stateを持ち、top-level solverは`ode4`とした。通信packet、固定通信遅延、ZOH/CV指令再構成、metrics、作図は後続実装の責務とした。
 
-`time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceや`.slx`の再生成には依存しない。
+`time_constant_s`はplant model workspaceの`Simulink.Parameter`として定義し、referenced modelの`ParameterArgumentNames`へ登録する。top-levelのModel blockはinstance parameterとして同名のmodel argumentを受け、`create_simulation_input`が`Workspace=teleop_delay_system`を指定してcaseごとの値を`SimulationInput`へ設定する。base workspaceへは依存しない。
 
-model lifecycleはbuilderとruntimeを分離する。`build_models`は明示的なmodel保守操作であり、`.slx`を書き換える。`app.main`は`validate_models`で追跡済みmodelの存在、Model Reference接続、interface metadata、model updateを確認するだけで、通常実行中にmodelを保存しない。loggingはDataset elementの完全一致名`command_xy_m`と`position_xy_m`で取得し、順序に依存しない。
+## 14. Issue #5 サンプル値通信の実装契約
 
-実装済みの検証は、package・model存在、旧source削除、explicit builder、Model Reference接続、model load/update、headless simulation、entry point 3形式、circle/Lissajous、output shape・finite値、named logging、path復元、open model cleanup、read-only相当model fileでのruntime、`checkcode`、unit/model/integration testである。軌道の解析値、周期性、微分一致、plant解析解、solver収束性はfollow-upで検証した。
+`models/communication/sampled_communication.slx`は、連続目標位置`position_xy_m`（2要素、double、m）と解析速度`velocity_mps`（2要素、double、m/s）を入力とする独立Model Referenceである。model argumentsは`sample_period_s`（s）と`delay_s`（s）であり、内部ClockとMATLAB Functionブロックがsampling、packet timestamp・position・velocityの一体保持、到着判定、最新packet選択を所有する。送信時刻`t_k`のpacketは`t_k+delay_s<=t`で利用可能とする。
+
+通信modelは同じ選択packetから、`zoh_command_xy_m`、`cv_command_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`を出力する。CVの外挿時間は`current_time-packet_timestamp_s`である。最初のpacket到着前はvalidity=false、timestamp=0、age=0、ZOH/CV=[0,0]とする。
+
+top-level `teleop_delay_system.slx`は通信出力を2つの`first_order_2d.slx` instanceへ分岐する。Dataset elementは`zoh_command_xy_m`、`cv_command_xy_m`、`zoh_position_xy_m`、`cv_position_xy_m`、`packet_timestamp_s`、`packet_age_s`、`packet_valid`の名前で取得し、順序には依存しない。MATLAB側の公開schemaは`config`、`trajectory`、`simulation`を維持し、`simulation`内に同名の`N x 1`または`N x 2`配列を公開する。旧`command_xy_m`、`position_xy_m` aliasは追加しない。
+
+`sample_period_s / fixed_step_s`は正の整数でなければならず、`simulation.fixed_step`は`simulation.dt`と一致しなければならない。これは現在の固定step数値モデルがsolver step内で過去の軌道値を補間せずsamplingする制限を明示的にguardするためである。`sample_period_s < fixed_step_s`、非整数比、buffer容量を超える遅延はstable error identifierで拒否する。通信packet buffer容量は1024で、必要履歴数は`ceil(delay_s / sample_period_s) + 1`以下に制限する。
