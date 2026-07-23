@@ -15,6 +15,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{calc}
+\usepackage{makecell}
 \pagestyle{fancy}
 \lhead{2026年度 シミュレーション工学・演習 最終課題}
 \rhead{}
@@ -50,6 +51,8 @@
 }
 \providecommand{\tightlist}{}
 \providecommand{\passthrough}[1]{#1}
+\newcommand{\inlinecode}[1]{\hspace{0.3em}\mbox{\texttt{#1}}\hspace{0.3em}}
+\newcommand{\englishterm}[1]{\hspace{0.2em}\textit{#1}\hspace{0.2em}}
 \begin{document}
 \begin{titlepage}
 \thispagestyle{empty}
@@ -74,23 +77,23 @@
 \end{titlepage}
 \section{シミュレーションの目的}
 
-遠隔操作ロボットでは、操作者が生成した指令を通信回線を介してロボットへ送るため、指令が生成されてから利用可能になるまでに通信遅延が生じる。さらに、指令を一定周期で送信する場合、受信側が使用する最新指令はサンプル間でも古くなる。古い位置指令をそのまま保持するゼロ次ホールド（Zero-Order Hold、以下ZOH）は実装が容易である一方、目標運動が速いほど位置の遅れが大きくなる。
+遠隔操作ロボットでは、操作者が生成した指令を通信回線を介してロボットへ送るため、指令が生成されてから利用可能になるまでに通信遅延が生じる。さらに、指令を一定周期で送信する場合、受信側が使用する最新指令はサンプル間でも古くなる。古い位置指令をそのまま保持するゼロ次ホールド（\englishterm{Zero-Order Hold}、以下 \inlinecode{ZOH}）は実装が容易である一方、目標運動が速いほど位置の遅れが大きくなる。
 
-通信遅延が遠隔操作性能を低下させることは古くから報告されており、Sheridanらは伝送遅延を含む遠隔マニピュレーションで作業時間が増加することを示した{[}1{]}。遅延の影響を軽減する方法として、実ロボットより先に動く仮想ロボットを表示する予測表示{[}2{]}、遠隔側の詳細な動力学モデルを必須としない予測器フレームワーク{[}3,4{]}、操作者の意図軌道を予測して車両を誘導する方式{[}5{]}などが研究されている。
+通信遅延が遠隔操作性能を低下させることは古くから報告されており、Sheridan らは伝送遅延を含む遠隔マニピュレーションで作業時間が増加することを示した{[}1{]}。遅延の影響を軽減する方法として、実ロボットより先に動く仮想ロボットを表示する予測表示{[}2{]}、遠隔側の詳細な動力学モデルを必須としない予測器フレームワーク{[}3,4{]}、操作者の意図軌道を予測して車両を誘導する方式{[}5{]}などが研究されている。
 
-本課題では、複雑な予測器や人間操作者を含む実験に進む前の基礎検討として、最後に受信した位置と速度から現在位置を一次外挿する定速度予測（Constant Velocity、以下CV）を扱う。CVは、受信した運動状態から位置を推定する単純なデッドレコニングであり、予測表示{[}2{]}、Zhengらの予測器フレームワーク{[}3,4{]}、予測軌道誘導制御{[}5{]}と同一の方式ではない。
+本課題では、複雑な予測器や人間操作者を含む実験に進む前の基礎検討として、最後に受信した位置と速度から現在位置を一次外挿する定速度予測（\englishterm{Constant Velocity}、以下 \inlinecode{CV}）を扱う。CVは、受信した運動状態から位置を推定する単純なデッドレコニングであり、予測表示{[}2{]}、Zheng らの予測器フレームワーク{[}3,4{]}、予測軌道誘導制御{[}5{]}と同一の方式ではない。
 
 この対象を選んだ理由は、通信遅延が遠隔操作ロボットの基本的な性能制約であり、単純な予測補償でも有効条件と失敗条件の双方を数値的に検討できるためである。本シミュレーションの目的は、通信遅延、目標軌道の角周波数および軌道形状を変化させ、CVがZOHより追従誤差を低減する条件と、定速度仮定の破綻によって逆に悪化する条件を明らかにすることである。特に、遅延時間を軌道の時間スケールで無次元化し、改善から悪化へ移る範囲を整理する。
 
 \section{関連研究}
 
-Sheridanら{[}1{]}は、遠隔マニピュレータを用いた単純作業に伝送遅延を導入し、遅延が人間の操作時間へ与える影響を調べた。この研究は、通信遅延が単なる信号処理上の問題ではなく、人間を含む遠隔操作全体の性能を低下させることを示した初期の研究である。
+Sheridan ら{[}1{]}は、遠隔マニピュレータを用いた単純作業に伝送遅延を導入し、遅延が人間の操作時間へ与える影響を調べた。この研究は、通信遅延が単なる信号処理上の問題ではなく、人間を含む遠隔操作全体の性能を低下させることを示した初期の研究である。
 
-Bejczyら{[}2{]}は、実ロボットの遅延映像へリアルタイムの仮想ロボットを重ねる「phantom robot」を提案し、長い遅延を含む自由空間動作で予測表示が作業性能を改善し得ることを報告した。ただし、これは操作者へ将来のロボット状態を提示する方式であり、本課題のようにロボットへ送る位置指令自体を外挿する方式とは異なる。
+Bejczy ら{[}2{]}は、実ロボットの遅延映像へリアルタイムの仮想ロボットを重ねる「phantom robot」を提案し、長い遅延を含む自由空間動作で予測表示が作業性能を改善し得ることを報告した。ただし、これは操作者へ将来のロボット状態を提示する方式であり、本課題のようにロボットへ送る位置指令自体を外挿する方式とは異なる。
 
-Zhengら{[}3{]}は、遠隔サブシステムの詳細な動的モデルを必要としない予測器フレームワークをネットワーク化閉ループ系へ適用し、一定遅延だけでなく変動遅延へ拡張した。さらに高速度無人地上車両のhuman-in-the-loop実験では、予測器を用いることで走行速度、横方向追従精度および操舵努力が改善したと報告している{[}4{]}。これらは、予測により遅延の負の影響を軽減できる実例である一方、予測器の構造と評価対象は本課題の一次Taylor外挿とは異なる。
+Zheng ら{[}3{]}は、遠隔サブシステムの詳細な動的モデルを必要としない予測器フレームワークをネットワーク化閉ループ系へ適用し、一定遅延だけでなく変動遅延へ拡張した。さらに高速度無人地上車両のhuman-in-the-loop実験では、予測器を用いることで走行速度、横方向追従精度および操舵努力が改善したと報告している{[}4{]}。これらは、予測により遅延の負の影響を軽減できる実例である一方、予測器の構造と評価対象は本課題の一次\hspace{0.25em}Taylor\hspace{0.25em}外挿とは異なる。
 
-Zhangら{[}5{]}は、操作者の意図軌道を予測し、車両をその軌道へ誘導するPTGC（Predicted Trajectory Guidance Control）を提案した。同研究では、実験条件において大きな遅延では操縦性を改善した一方、小さな遅延では効果が限定的であった。本課題では、人間の適応や認知負荷を扱わず、同じ通信・プラント条件の下でZOHとCVの数値誤差だけを比較する。この限定により、定速度外挿の有効範囲を再現可能な条件で調べる。
+Zhang ら{[}5{]}は、操作者の意図軌道を予測し、車両をその軌道へ誘導するPTGC（\englishterm{Predicted Trajectory Guidance Control}）を提案した。同研究では、実験条件において大きな遅延では操縦性を改善した一方、小さな遅延では効果が限定的であった。本課題では、人間の適応や認知負荷を扱わず、同じ通信・プラント条件の下でZOHとCVの数値誤差だけを比較する。この限定により、定速度外挿の有効範囲を再現可能な条件で調べる。
 
 \section{遠隔位置指令系のモデル化}
 
@@ -175,7 +178,7 @@ CVでは、同じパケットの位置と速度を用い、パケット齢だけ
 \tag{5}
 \]
 
-CVは受信状態の一次Taylor外挿であり、プラントモデルと遅延モデルを用いて閉ループ系を構成するSmith予測器とは異なる。目標が一定速度で移動する区間では現在位置を正確に再現できるが、加速度や方向変化が大きいほど外挿誤差が増える。
+CVは受信状態の一次\hspace{0.25em}Taylor\hspace{0.25em}外挿であり、プラントモデルと遅延モデルを用いて閉ループ系を構成するSmith予測器とは異なる。目標が一定速度で移動する区間では現在位置を正確に再現できるが、加速度や方向変化が大きいほど外挿誤差が増える。
 
 \subsection{一次遅れプラント}
 
@@ -323,42 +326,42 @@ q_a=\omega\overline a
 
 \subsection{プログラム構成}
 
-MATLABは、設定値の検証、固定時間格子、軌道生成、実験条件manifest、Simulink実行、評価指標、全条件集約、保存および図生成を担当する。Simulinkは、通信モデルと3つの一次遅れプラントの時間応答を計算する。
+MATLABは、設定値の検証、固定時間格子、軌道生成、実験条件\hspace{0.5em}\inlinecode{manifest}\hspace{0.5em}、\hspace{0.5em}\inlinecode{Simulink}\hspace{0.5em}の実行、評価指標、全条件集約、保存および図生成を担当する。\inlinecode{Simulink} は、通信モデルと3つの一次遅れプラントの時間応答を計算する。
 
 主な公開入口は次の3つである。
 
 \begin{itemize}
 
 \item
-  \passthrough{\lstinline!run\_project!}：単一条件の設定、軌道生成、Simulink実行および評価
+  \inlinecode{run\_project}：単一条件の設定、軌道生成、\hspace{0.5em}Simulink\hspace{0.5em}の実行および評価
 \item
-  \passthrough{\lstinline!run\_standard\_experiment!}：標準40条件の逐次実行とCSV/MAT保存
+  \inlinecode{run\_standard\_experiment}\hspace{0.25em}：標準40条件の逐次実行とCSV / MAT 保存
 \item
-  \passthrough{\lstinline!run\_issue9\_analysis!}：保存済み40条件から分類、境界抽出、代表条件選定および図生成
+  \inlinecode{run\_issue9\_analysis}\hspace{0.25em}：保存済み40条件から分類、境界抽出、代表条件選定および図生成
 \end{itemize}
 
-Simulinkでは、送信側サンプリング、固定遅延、最新パケット選択、ZOH/CV再構成を通信Model Referenceにまとめ、一次遅れプラントを別のModel ReferenceとしてZOH、CV、参照の3経路で共有した。
+\inlinecode{Simulink} では、送信側サンプリング、固定遅延、最新パケット選択と \inlinecode{ZOH} / \inlinecode{CV} 再構成を通信 \englishterm{Model Reference} にまとめ、一次遅れプラントを別の \englishterm{Model Reference} として ZOH、CV、参照の3経路で共有した。
 
 \subsection{処理手順}
 
-標準実験の処理を以下に示す。
+標準実験の処理を以下に示す。\inlinecode{for} の反復範囲を明示し、処理本体は番号付き手順として示す。
 
-\begin{lstlisting}
-標準条件manifestを生成・検証
-for 各trajectory, delay, omega
-    固定時間格子と解析軌道を生成
-    Simulink入力を作成
-    reference / ZOH / CVを同時実行
-    評価区間を抽出
-    RMSE、最大誤差、G、改善率、平均パケット齢を計算
-    case IDと結果を保存
-end
-全40条件を集約
-CSVとMATを保存して再読込検証
-保存結果から代表条件、境界、無次元図を生成
-\end{lstlisting}
+\begin{enumerate}
+\setlength{\itemsep}{0.2em}
+\item 標準条件 \inlinecode{manifest} を生成・検証する。
+\item 各 \inlinecode{trajectory}、\inlinecode{delay}、\inlinecode{omega} について、以下を繰り返す。
+\item 固定時間格子と解析軌道を生成する。
+\item Simulink 入力を作成する。
+\item \inlinecode{reference}、\inlinecode{ZOH}、\inlinecode{CV} を同時実行する。
+\item 評価区間を抽出する。
+\item \inlinecode{RMSE}、最大誤差、\inlinecode{G}、改善率、平均パケット齢を計算する。
+\item \inlinecode{case ID} と結果を保存する。
+\item 全40条件を集約する。
+\item \inlinecode{CSV} と \inlinecode{MAT} へ保存し、再読込検証する。
+\item 代表条件、境界、無次元図を生成する。
+\end{enumerate}
 
-結果ファイルには、条件、軌道、時系列、評価指標、実行環境、Git commitおよびSHA-256を記録した。これにより、図中の各条件を元の計算結果へ追跡できる。
+結果ファイルには、条件、軌道、時系列、評価指標、実行環境、\inlinecode{Git} \inlinecode{commit} および \inlinecode{SHA-256} を記録した。これにより、図中の各条件を元の計算結果へ追跡できる。
 
 \subsection{Main Program}
 
@@ -412,8 +415,9 @@ acceleration_mps2 = [ ...
     -A * omega^2 * sin(omega * time_s)];
 \end{lstlisting}
 
-評価指標は、参照出力との差を同じ評価maskで計算する。RMSE、最大誤差、性能比および改善率の主要部をプログラム3に示す。
+評価指標は、参照出力との差を同じ評価 \inlinecode{mask} で計算する。RMSE、最大誤差、性能比および改善率の主要部をプログラム3に示す。
 
+\clearpage
 \textbf{プログラム 3　追従誤差と性能比の計算}
 
 \begin{lstlisting}[language=Matlab]
@@ -446,8 +450,9 @@ end
 mean_packet_age_s = mean(evaluation_packet_age);
 \end{lstlisting}
 
-掲載したコードは主要処理に限定した。実装では、入力shape、時刻整合、パケット有効性、零除算、非有限値および保存結果の整合性を検証し、不正な条件を黙って評価しない。
+掲載したコードは主要処理に限定した。実装では、入力 \inlinecode{shape}、時刻整合、パケット有効性、零除算、非有限値および保存結果の整合性を検証し、不正な条件を黙って評価しない。
 
+\clearpage
 \section{実行結果}
 
 \subsection{全40条件の分類}
@@ -476,15 +481,16 @@ mean_packet_age_s = mean(evaluation_packet_age);
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_02_representative_circle.pdf}
+\includegraphics[width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_02_representative_circle.pdf}
 \caption{円軌道の代表条件における追従軌跡}
 \end{figure}
 
 円軌道の最大改善条件は \(\omega=0.5\ \mathrm{rad/s}, L=0\ \mathrm{s}\) であり、\(G=0.00330\)、改善率99.67\%であった。最大悪化条件かつ境界最近傍条件は \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) であり、\(G=1.084\)、改善率は−8.43\%であった。図2では、低速条件でCVが参照軌道にほぼ一致する一方、高速・大遅延条件ではCVの外挿が参照から外れることが確認できる。
 
+\clearpage
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_03_representative_lissajous.pdf}
+\includegraphics[width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_03_representative_lissajous.pdf}
 \caption{1:2リサジュー軌道の代表条件における追従軌跡}
 \end{figure}
 
@@ -493,17 +499,18 @@ mean_packet_age_s = mean(evaluation_packet_age);
 \begin{table}[htbp]
 \centering
 \small
+\setlength{\tabcolsep}{2pt}
 \caption{自動選定した主要条件の評価値}\label{tab:representatives}
 
 \begin{tabular}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1600}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.2000}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1066}}@{}}
 \toprule
 \begin{minipage}[b]{\linewidth}\raggedright
 軌道
@@ -524,7 +531,7 @@ RMSE CV {[}m{]}
 \end{minipage} \\
 \midrule
 円 & 最大改善 & 0.5 & 0 & 0.004578 & 0.0000151 & 0.00330 & 99.67 \\
-円 & 最大悪化・境界最近傍 & 4 & 0.5 & 1.580 & 1.714 & 1.084 & −8.43 \\
+円 & \makecell[l]{最大悪化・\\境界最近傍} & 4 & 0.5 & 1.580 & 1.714 & 1.084 & −8.43 \\
 リサジュー & 最大改善 & 0.5 & 0 & 0.007217 & 0.0000438 & 0.00607 & 99.39 \\
 リサジュー & 境界最近傍 & 2 & 0.5 & 1.306 & 1.261 & 0.9656 & 3.44 \\
 リサジュー & 最大悪化 & 4 & 0.5 & 1.490 & 3.079 & 2.066 & −106.61 \\
@@ -536,9 +543,9 @@ RMSE CV {[}m{]}
 
 \subsection{誤差時系列と目標加速度}
 
-\begin{figure}[htbp]
+\begin{figure}[p]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_04_lissajous_error_timeseries.pdf}
+\includegraphics[width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_04_lissajous_error_timeseries.pdf}
 \caption{1:2リサジュー軌道における追従誤差と目標加速度}
 \end{figure}
 
@@ -546,15 +553,15 @@ RMSE CV {[}m{]}
 
 \subsection{遅延・角周波数と性能比}
 
-\begin{figure}[htbp]
+\begin{figure}[p]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_05_circle_delay_omega_map.pdf}
+\includegraphics[trim=18 0 18 0,clip,width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_05_circle_delay_omega_map.pdf}
 \caption{円軌道における通信遅延・角周波数と性能比}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[p]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_06_lissajous_delay_omega_map.pdf}
+\includegraphics[trim=18 0 18 0,clip,width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_06_lissajous_delay_omega_map.pdf}
 \caption{1:2リサジュー軌道における通信遅延・角周波数と性能比}
 \end{figure}
 
@@ -567,17 +574,18 @@ RMSE CV {[}m{]}
 \begin{table}[htbp]
 \centering
 \small
+\setlength{\tabcolsep}{2pt}
 \caption{離散条件格子における性能境界の隣接条件}\label{tab:boundaries}
 
 \begin{tabular}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1538}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1538}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1154}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1400}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1300}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1300}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1300}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1700}}@{}}
 \toprule
 \begin{minipage}[b]{\linewidth}\raggedright
 軌道
@@ -610,17 +618,21 @@ RMSE CV {[}m{]}
 
 \subsection{無次元量による整理}
 
+\clearpage
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_07_performance_vs_omega_delay.pdf}
+\includegraphics[width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_07_performance_vs_omega_delay.pdf}
 \caption{無次元通信遅延ωLによる性能比の整理}
 \end{figure}
 
-\begin{figure}[htbp]
+\clearpage
+\begin{figure}[p]
 \centering
-\includegraphics[width=0.98\linewidth,keepaspectratio]{../assets/issue9/figures/figure_08_performance_vs_omega_mean_packet_age.pdf}
+\includegraphics[width=\linewidth,keepaspectratio]{../assets/issue9/figures/figure_08_performance_vs_omega_mean_packet_age.pdf}
 \caption{平均パケット齢に基づく無次元量による性能比の整理}
 \end{figure}
+
+\clearpage
 
 名目遅延が0であっても、送信周期が0.020 sであるため、評価区間の平均パケット齢は約0.0075 sであった。このためZOHにはサンプル間保持による誤差が残り、CVは \(L=0\) の全条件でもRMSEを低減した。したがって、補償時間を名目遅延 \(L\) だけでなく、実際に使用したパケットの齢で捉える必要がある。
 

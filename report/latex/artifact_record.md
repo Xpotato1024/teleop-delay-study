@@ -2,14 +2,14 @@
 
 - final PDF path: `report/final_report.pdf`
 - final PDF filename: `final_report.pdf`
-- page count: 18
-- file size: 2,144,922 bytes
-- SHA-256: `F7B0FBEF8D0D9F830AD28F6D65E5975E5EFD0F1728095BAF44AF69E937226068`
+- page count: 20
+- file size: 2,146,827 bytes
+- SHA-256: `A96393921D9F12CA3C2696204FE37A708F2B533FD8B079E70DBD72328AA1298A`
 - LaTeX engine: MiKTeX 25.4 `uplatex`（e-upTeX）2回処理 + `dvipdfmx`（MiKTeX 25.4）
 - build command: `& .\report\latex\build.ps1`
 - template path: `C:\Users\miyut\Desktop\Xpotato-Apps\（参考）LaTeXテンプレート\template`
-- build date/time: 2026-07-24 04:26:18 +09:00
-- source commit SHA: `e72f95749080063207b28d5a241985f3994accb3`
+- build date/time: 2026-07-24 05:14:40 +09:00
+- source commit SHA: `c8890804bc27fcc9a0de685e23024d4e39c6d644`（最終レイアウト修正の親コミット）
 
 ## 使用図ファイル
 
@@ -32,3 +32,12 @@
 - 既存vector図に内包されたフォント: `NotoSansJP-Thin`、`MS-UIGothic`等
 
 本文の日本語フォントは、テンプレートの日本語組版を維持したupLaTeX/dvipdfmx経路でPDFへ埋め込んだ。
+
+## レイアウト修正と最終監査
+
+- 5.2の日本語擬似コードを`lstlisting`から番号付き手順へ置換した。
+- 和文と英数字・inline codeの境界に明示的な字間を追加した。
+- 表4・表5の列幅を再配分し、役割名・種別名を語単位で読める配置にした。
+- 図2・3、図7・8を別ページへ配置し、図5・6は左右余白を`trim/clip`で削減した。
+- MATLABコードのプログラム3はPDF 9ページにまとめた。
+- pypdfium2とPopplerで20ページを各200 dpiで描画した。pypdfium2では文字・図表・コードを確認し、Popplerでは同じ配置と図の数値セルを照合した。PopplerはAdobe-Japan1言語パック不足の警告を出すため、日本語文字の判定はpypdfium2を基準とした。
