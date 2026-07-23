@@ -10,6 +10,10 @@ textObjects = findall(fig, "Type", "text");
 for index = 1:numel(textObjects)
     textObjects(index).Color = [0.05, 0.05, 0.05];
 end
+subplotTextObjects = findall(fig, "Type", "subplottext");
+for index = 1:numel(subplotTextObjects)
+    subplotTextObjects(index).Color = [0.05, 0.05, 0.05];
+end
 axesObjects = findall(fig, "Type", "axes");
 for index = 1:numel(axesObjects)
     set(axesObjects(index), "Color", "white", "XColor", [0.05, 0.05, 0.05], ...
