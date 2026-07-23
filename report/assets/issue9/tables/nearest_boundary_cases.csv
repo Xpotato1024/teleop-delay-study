@@ -1,0 +1,3 @@
+trajectory,figure_id,role,case_id,selection_metric,selected_value,selection_reason,fallback_used
+circle,figure_02_representative_circle,nearest_boundary,case__trajectory-circle__A-1__w-4__d-0p5__sp-0p02__T-0p10000000000000001__dt-0p0050000000000000001__fs-0p0050000000000000001__tc-10__wc-2__solver-ode4__duration-15p710000000000001,abs(G-1),0.0843108484310455,Minimum absolute distance from G=1; ties use case_id.,0
+lissajous_1_2,figure_03_representative_lissajous,nearest_boundary,case__trajectory-lissajous_1_2__A-1__w-2__d-0p5__sp-0p02__T-0p10000000000000001__dt-0p0050000000000000001__fs-0p0050000000000000001__tc-10__wc-2__solver-ode4__duration-31p420000000000002,abs(G-1),0.0343539011909522,Minimum absolute distance from G=1; ties use case_id.,0
