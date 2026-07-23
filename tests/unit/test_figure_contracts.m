@@ -56,14 +56,42 @@ classdef test_figure_contracts < matlab.unittest.TestCase
             testCase.verifyTrue(all(ismember(["continuous_target", "sender_sampling", ...
                 "fixed_delay", "latest_packet", "zoh_reconstruction", "cv_reconstruction", ...
                 "reference_plant", "zoh_plant", "cv_plant", "evaluation"], contract.nodes)));
+            geometry = teleopdelay.analysis.architecture_geometry();
+            testCase.verifyEmpty(geometry.crossings);
+            testCase.verifyEqual(numel(geometry.edges), size(contract.required_edges, 1));
+            cvEdge = arrayfun(@(edge) edge.source == "latest_packet" && ...
+                edge.target == "cv_reconstruction", geometry.edges);
+            testCase.verifyTrue(any(cvEdge));
+            cvPoints = geometry.edges(cvEdge).points;
+            testCase.verifyGreaterThanOrEqual(size(cvPoints, 1), 4);
+            testCase.verifyEqual(cvPoints(1, 2), 0.70, "AbsTol", 1e-12);
+            testCase.verifyEqual(cvPoints(end, 2), 0.30, "AbsTol", 1e-12);
+            testCase.verifyGreaterThan(cvPoints(2, 1), 0.64);
+            testCase.verifyLessThan(cvPoints(end - 1, 1), 0.66 + 1e-12);
+            latestLabel = string(contract.labels(contract.nodes == "latest_packet"));
+            testCase.verifyTrue(contains(latestLabel, "有効状態・パケット齢"));
+            testCase.verifyFalse(contains(latestLabel, "valid状態"));
+            testCase.verifyFalse(contains(latestLabel, "packet age"));
+        end
+
+        function testFigure08UsesAgeBasedCandidateLabels(testCase)
+            figureText = teleopdelay.analysis.figure_text_contract().figure_08;
+            testCase.verifyEqual(figureText.x_label, "ω × 平均パケット齢");
+            testCase.verifyEqual(figureText.basic_candidate_legend, ...
+                "理論候補（ω × 平均パケット齢 ≈ 1.895、実測境界ではない）");
+            testCase.verifyEqual(figureText.double_candidate_legend, ...
+                "理論候補（2ω × 平均パケット齢 ≈ 1.895、実測境界ではない）");
+            testCase.verifyFalse(contains(string(figureText.x_label), "ωL"));
+            testCase.verifyFalse(contains(string(figureText.basic_candidate_legend), "ωL"));
+            testCase.verifyFalse(contains(string(figureText.double_candidate_legend), "ωL"));
         end
 
         function testEventDisplayIsSharedRugAndNonCausal(testCase)
             contract = teleopdelay.analysis.event_display_contract();
             testCase.verifyEqual(contract.upper_mode, "shared-rug");
             testCase.verifyEqual(contract.upper_label, "高加速度時刻");
-            testCase.verifyNotEmpty(strfind(contract.note, "時間的一致")); %#ok<STREMP>
-            testCase.verifyNotEmpty(strfind(contract.note, "因果関係を意味しない")); %#ok<STREMP>
+            testCase.verifyNotEmpty(strfind(contract.note, "時間的一致"));
+            testCase.verifyNotEmpty(strfind(contract.note, "因果関係を意味しない"));
         end
 
         function testAllFigureHumanFacingTextIsJapaneseAndTechnicalSymbolsRemain(testCase)

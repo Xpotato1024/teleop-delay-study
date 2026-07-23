@@ -4,9 +4,13 @@ function entry = render_dimensionless(diagnostics, theory, metric, figureId, fig
 if metric == "omega_delay"
     xLabel = "無次元通信遅延 ωL";
     figureText = teleopdelay.analysis.figure_text_contract().figure_07;
+    basicCandidateLabel = "基本周波数の理論候補（実測境界ではない）";
+    doubleCandidateLabel = "2倍周波数成分の理論候補（2ωL ≈ 1.895、実測境界ではない）";
 else
-    xLabel = "ω × 平均パケット齢";
     figureText = teleopdelay.analysis.figure_text_contract().figure_08;
+    xLabel = figureText.x_label;
+    basicCandidateLabel = figureText.basic_candidate_legend;
+    doubleCandidateLabel = figureText.double_candidate_legend;
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1250, 700]);
 cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
@@ -32,12 +36,12 @@ for panel = 1:2
     yline(1, "k--", "HandleVisibility", "off");
     if trajectory == "circle"
         xline(theory.q_candidate, "Color", [0.2, 0.2, 0.2], "LineStyle", ":", ...
-            "DisplayName", "基本周波数の理論候補（実測境界ではない）");
+            "DisplayName", basicCandidateLabel);
     else
         xline(theory.q_candidate / 2, "Color", [0.45, 0.15, 0.55], "LineStyle", ":", ...
-            "DisplayName", "2倍周波数成分の理論候補（2ωL ≈ 1.895、実測境界ではない）");
+            "DisplayName", doubleCandidateLabel);
         xline(theory.q_candidate, "Color", [0.2, 0.2, 0.2], "LineStyle", "-.", ...
-            "DisplayName", "基本周波数の理論候補（実測境界ではない）");
+            "DisplayName", basicCandidateLabel);
     end
     grid on;
     xlabel(xLabel, "Interpreter", "none");
