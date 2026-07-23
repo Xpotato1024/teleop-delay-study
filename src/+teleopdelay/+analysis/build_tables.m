@@ -1,0 +1,63 @@
+function tables = build_tables(~, classification, representatives, boundaryBrackets, ...
+        dimensionless, identifiability, convergence, theory, config)
+% build_tables  Assemble the stable Issue #9 table set.
+
+representatives.figure_id = strings(height(representatives), 1);
+for index = 1:height(representatives)
+    trajectory = representatives.trajectory(index);
+    role = representatives.role(index);
+    if role == "best_improvement" || startsWith(role, "worst_degradation") || role == "nearest_boundary"
+        if trajectory == "circle"
+            representatives.figure_id(index) = "figure_02_representative_circle";
+        else
+            representatives.figure_id(index) = "figure_03_representative_lissajous";
+        end
+    elseif role == "lissajous_direction_change"
+        representatives.figure_id(index) = "figure_04_lissajous_error_timeseries";
+    end
+end
+representatives = movevars(representatives, "figure_id", "Before", "role");
+
+extremeRoles = representatives.role == "best_improvement" | ...
+    startsWith(representatives.role, "worst_degradation") | representatives.role == "nearest_boundary";
+extreme_cases = representatives(extremeRoles, :);
+nearest_boundary_cases = representatives(representatives.role == "nearest_boundary", :);
+instantaneous_error_extremes = representatives( ...
+    startsWith(representatives.role, "maximum_instantaneous_error"), :);
+convergenceTable = convergence.table;
+tables = struct( ...
+    "case_classification", classification, ...
+    "extreme_cases", extreme_cases, ...
+    "nearest_boundary_cases", nearest_boundary_cases, ...
+    "boundary_brackets", boundaryBrackets, ...
+    "representative_cases", representatives, ...
+    "instantaneous_error_extremes", instantaneous_error_extremes, ...
+    "dimensionless_diagnostics", dimensionless, ...
+    "identifiability", identifiability, ...
+    "convergence", convergenceTable, ...
+    "figure_manifest", table(), ...
+    "classification_counts", classification_counts(classification), ...
+    "trajectory_counts", trajectory_counts(classification), ...
+    "theoretical_q_candidate", theory.q_candidate, ...
+    "analysis_config", config);
+end
+
+function counts = classification_counts(classification)
+labels = ["improvement", "equivalent", "degradation"];
+counts = table(labels.', zeros(3, 1), 'VariableNames', {'classification', 'count'});
+for index = 1:3
+    counts.count(index) = sum(classification.classification == labels(index));
+end
+end
+
+function counts = trajectory_counts(classification)
+labels = ["circle", "lissajous_1_2"];
+rows = cell(0, 4);
+for trajectory = labels
+    subset = classification(classification.trajectory == trajectory, :);
+    rows(end + 1, :) = {trajectory, sum(subset.classification == "improvement"), ...
+        sum(subset.classification == "equivalent"), sum(subset.classification == "degradation")}; %#ok<AGROW>
+end
+counts = cell2table(rows, 'VariableNames', ...
+    {'trajectory', 'improvement_count', 'equivalent_count', 'degradation_count'});
+end

@@ -162,3 +162,24 @@
 - 判断: `SaveResults=false`はsuccessful complete artifactだけを抑制し、failed diagnostic CSV/MATは常に保存する。diagnostic persistence後の実在pathを`teleopDelay:ExperimentIncomplete`へ含め、complete artifact名を使わない。
 - 判断: SHA-256はPowerShell等の外部shellを使わず、`teleopdelay.experiment.sha256_file`のbinary readとJava `java.security.MessageDigest`へ統一した。CSV、MAT、model hash testが同じuppercase digest helperを使う。
 - 検証: focused P1/P2 7/7、full unit 40/40、full model 15/15、full integration 5/5、smokeを確認した。negative fixture 5種、`SaveResults=false` failure fixture、round-trip checksumを含む。standard 40 caseの最終再実行結果は実装報告とDraft PRへ追記する。
+## 2026-07-23: Issue #9 結果図・無次元整理・CV有効境界解析
+
+- Issue #8のcomplete MAT `i8v1_n40_2353bb12__results.mat`を明示入力とし、SHA-256 `E21B8B7486C89010A390CBF52BFF6286E6B217A5D911544D5102E39D87CDDEC8`を確認した。標準40 caseは再実行せず、入力schema、40 success、condition grid、case時系列、aggregate/cases metrics一致をfail-closedに検証する。
+- 公開entrypointを`run_issue9_analysis`とし、既定`render-only`はSimulinkを呼ばない。`full`は代表caseのfixed-step半減だけを追加実行し、標準aggregateを置換しない。出力はanalysis IDを入力experiment ID、入力MAT SHA-256、schema/config、tolerance contract、convergence configから決定し、run timestampをIDへ入れない。
+- G分類は`RMSE_CV/RMSE_ZOH`、改善率は`(1-G)*100`とし、sign consistencyを検証する。full modeの代表5 unique case収束では最大`|delta G|=0.0019707`、safety factor 4、boundary tolerance約`0.0079`となった。収束tableの全行は`validated`で、sample period `0.020` sとrefined fixed step `0.0025` sのalignment、model hash、path、pwd、model close、base workspace非残留を確認した。
+- 現入力の分類はcircle 19 improvement / 0 equivalent / 1 degradation、lissajous_1_2 18 / 0 / 2、合計37 / 0 / 3。representative selectionはmetricとcanonical case_idによる決定論的比較で、circleのnearest boundaryはomega=4, delay=0.5、Lissajousはomega=2, delay=0.5となった。
+- `q≈1.895`についてrepository内の文献出典・既存定義は確認できなかった。理想正弦波の`E_ZOH^2=2(1-cos(q))`、`E_CV^2=(1-cos(q))^2+(q-sin(q))^2`から`q=2 sin(q)`を導き、最初の正の非零解`1.895494267...`を解析候補として実装した。sampled communication、packet-age変動、plant、fixed-step error、Lissajous複数周波数を無視する候補であり、文献値・実測境界とは扱わない。
+- `omega*time_constant`と`omega*sample_period`は標準40 caseで固定定数をomegaへ掛けた列のため、design matrix rank/collinearityを保存し、独立効果を因果的に識別できるとは解釈しない。p-value/statistical significance testは追加しない。
+
+## 2026-07-23: Issue #9 P1/P2 re-review修正
+
+- 判断: dimensionless、代表case、boundary、figure 7/8のsource tableはaggregateのrow位置を使わず、`case_id`を正本としてcanonical順に結合する。固定permutation fixtureでclassification、q、G、selection、boundary、figure source IDの不変性を確認する。
+- 判断: convergence artifactは空・不整合・未検証をavailable扱いしない。候補診断を保持し、異なるsemantic contentの複数有効候補を`teleopDelay:AnalysisConvergenceAmbiguous`で拒否し、同一内容のみ決定論的に選択する。
+- 判断: InputMatはmanifest/cases/aggregateの条件、時系列shape・alignment、evaluation mask、packet validity、metric・無次元量再計算までmachine-precision由来で照合する。relative deltaは`abs(refined-base)/max(abs(base), scaleAwareFloor)`とする。
+- 判断: MAT自身のself hashはmetadata.output_filesから除外し、最終MATを含む全fileを`artifact_manifest.csv`へsidecar記録する。event acceleration percentileはconfigから描画・選定理由・axes contractへ共有する。
+- 検証: Issue #9 focused suiteは保存figureを実際に2回生成するdeterminismを含め、入力negative、収束候補、sidecar hash、relative delta、percentileを確認する。標準40 caseは再simulationしない。
+## 2026-07-23: Issue #9 収束artifact結合P1修正
+
+- 判断: convergence artifactはartifact自身のcase集合だけでは十分とせず、machine-precision分類から同じ`convergence_plan`を再構成して照合する。期待unique case ID集合、row数、role mapping、primary role、入力case条件、base metrics、`convergence_case_ids`、artifact/top-level metadata一致を必須とした。
+- 実装: `run_convergence`と`load_convergence`の代表study planを`src/+teleopdelay/+analysis/convergence_plan.m`へ集約した。explicit不一致はstable schema mismatch、自動探索不一致はdiagnosticへ残してavailable候補から除外する。
+- 検証: representative artifact受理、1 case subset、代表外case、role mapping、condition、base G/RMSE/max error、metadata不一致のnegative fixtureを追加し、Issue #9 focused testsは40/40通過した。

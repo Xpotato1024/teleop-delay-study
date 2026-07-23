@@ -247,3 +247,38 @@ matlab -batch "result=run_standard_experiment(); assert(result.run_status==\"com
 既定の保存先は `results/generated/<experiment_id>/<run_id>/` です。保存を一時directoryへ変更する場合は `run_standard_experiment('OutputRoot', fullfile(tempdir,'teleop-delay-study-results'))` を使います。`SaveResults=false` は成功時のcomplete artifactだけを抑制し、失敗時のdiagnostic CSV/MAT保存は抑制しません。
 
 実行前後に `path`、`pwd`、`bdIsLoaded`、base workspaceのparameter名を確認し、model fileのSHA-256が変化していないことを確認します。標準実験のduration、評価境界、solver、fixed step、sampling周期はmanifestとMAT metadataで追跡します。
+
+## 13. Issue #9 分析・図・収束検証
+
+入力MATは自動探索せず、Issue #8のcomplete artifactを`InputMat`で明示します。SHA-256、40 rows、40 successful cases、標準delay/omega grid、case schema、時系列shape/time alignment、aggregateとcase metricsの一致をfail-closedに検証します。
+
+focused analysis unit test:
+
+```powershell
+matlab -batch "results=runtests('tests/unit/issue9AnalysisTest.m'); assert(all([results.Passed]))"
+```
+
+保存済み結果からの通常再生成はsimulationを行わない次のcommandです。
+
+```powershell
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','render-only'); assert(result.artifact.saved)"
+```
+
+初回の収束artifactを含む生成は次です。標準40 caseは再実行せず、代表caseのfixed-step半減だけを実行します。
+
+```powershell
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','full'); assert(result.artifact.saved)"
+```
+
+Issue #9のartifactには8 figureのPNG/PDF、`case_classification`、`extreme_cases`、`nearest_boundary_cases`、`boundary_brackets`、`representative_cases`、`instantaneous_error_extremes`、`dimensionless_diagnostics`、`identifiability`、`convergence`、`figure_manifest`を保存します。分類許容幅はfull modeでは収束時の最大`|delta G|`に固定safety factorを掛け、render-onlyで収束artifactがない場合はmachine-precision-onlyとmetadataへ明記します。離散grid外の境界は実測結果として描画しません。
+
+収束studyではsample period `0.020` sとrefined step `0.0025` sの整数alignment、solver、model hash、path、pwd、model close、base workspace非残留を確認します。図のbinary hashはrenderer環境に依存し得るため、manifestのfile existence、size、source case IDs、axes contract、CSV/MAT source dataを再現性の正本とします。
+
+P1/P2のfocused確認は、row permutation、InputMat semantic negative fixture、収束artifact候補の空table・不整合・曖昧性・同一内容選択、relative delta、percentile設定、保存figure determinism、sidecar hash round-tripを含めて実行します。保存figure determinismは`SaveResults=false`の比較ではなく、同一input/configを2回保存し、figure ID、case ID、caption、axes contract、source table、PNG/PDF存在・非空を比較します。`artifact_manifest.csv`の各行は最終fileのsize・SHA-256を再計算して照合します。
+
+```powershell
+matlab -batch "addpath('src'); results=runtests('tests/unit/issue9AnalysisTest.m'); assert(all([results.Passed]))"
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','render-only'); assert(result.artifact.saved)"
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','full'); assert(result.artifact.saved)"
+```
+収束artifactのfocused testでは、正しい5 unique representative case、1 case subset、代表外case、role mapping、condition、base RMSE/G/max error、metadata mismatchを検証します。`run_convergence`と`load_convergence`は共通`convergence_plan`を使い、render-onlyはこのplanと完全一致するartifactだけをboundary toleranceへ使用します。
