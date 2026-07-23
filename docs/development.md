@@ -244,6 +244,6 @@ cleanなMATLAB sessionでrepository rootを作業基準にし、次を単独で�
 matlab -batch "result=run_standard_experiment(); assert(result.run_status==\"complete\")"
 ```
 
-既定の保存先は `results/generated/<experiment_id>/<run_id>/` です。保存を一時directoryへ変更する場合は `run_standard_experiment('OutputRoot', fullfile(tempdir,'teleop-delay-study-results'))` を使います。`SaveResults=false` は保存契約を検証しないfixture向けです。
+既定の保存先は `results/generated/<experiment_id>/<run_id>/` です。保存を一時directoryへ変更する場合は `run_standard_experiment('OutputRoot', fullfile(tempdir,'teleop-delay-study-results'))` を使います。`SaveResults=false` は成功時のcomplete artifactだけを抑制し、失敗時のdiagnostic CSV/MAT保存は抑制しません。
 
 実行前後に `path`、`pwd`、`bdIsLoaded`、base workspaceのparameter名を確認し、model fileのSHA-256が変化していないことを確認します。標準実験のduration、評価境界、solver、fixed step、sampling周期はmanifestとMAT metadataで追跡します。

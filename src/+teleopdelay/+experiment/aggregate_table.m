@@ -66,6 +66,7 @@ for index = 1:n
     if status(index) ~= "success"
         continue;
     end
+    teleopdelay.experiment.validate_case_output(result, definition);
     if ~all(isfield(result, ["simulation", "evaluation"]))
         error("teleopDelay:ExperimentAggregationInvalidInput", ...
             "A successful case result must contain simulation and evaluation.");

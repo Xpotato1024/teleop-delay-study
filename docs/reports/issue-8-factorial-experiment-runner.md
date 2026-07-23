@@ -57,3 +57,10 @@ results/generated/<experiment_id>/failed/<run_id>/<experiment_id>__diagnostic.ma
 ```
 
 同一条件の再実行は既存runを暗黙に上書きしません。
+
+## 2026-07-23: P1/P2 follow-up
+
+- manifest条件とsuccessful `output.config`、simulation metadata、evaluationの無次元指標をmachine precision由来の判定で照合し、不一致を`teleopDelay:ExperimentCaseOutputMismatch`としてfailed rowへ記録する経路を追加。
+- `SaveResults=false`でもfailed diagnostic CSV/MATは常に保存し、例外messageへ実在するdiagnostic directoryを含めるよう修正。
+- CSV、MAT、tracked modelのSHA-256をJava `MessageDigest`によるOS非依存helperへ統一。正常fileのdigestはuppercase 64桁で保存し、hash計算不能はstable errorとする。
+- negative fixtureはdelay、omega、fixed step、solver、`evaluation.omega_delay`の不一致を検出し、元identifierをdiagnosticへ残す。`SaveResults=false`の1/4 failure fixtureでもcomplete artifactなし、diagnostic CSV/MATありを確認した。

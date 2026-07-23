@@ -111,6 +111,80 @@ verifyEqual(testCase, loaded.metadata.success_case_count, 3);
 verifyEqual(testCase, loaded.metadata.failed_case_count, 1);
 end
 
+function testFailureContractPersistsDiagnosticWhenSaveResultsIsFalse(testCase)
+manifest = small_manifest();
+outputRoot = tempname;
+mkdir(outputRoot);
+cleanup = onCleanup(@() rmdir(outputRoot, "s"));
+root = project_root();
+caught = false;
+exceptionMessage = "";
+try
+    teleopdelay.experiment.run_manifest(manifest, root, ...
+        "OutputRoot", outputRoot, "SaveResults", false, ...
+        "CaseExecutor", @failing_fixture_executor);
+catch exception
+    caught = true;
+    verifyEqual(testCase, string(exception.identifier), "teleopDelay:ExperimentIncomplete");
+    exceptionMessage = string(exception.message);
+end
+verifyTrue(testCase, caught);
+experimentRoot = fullfile(outputRoot, manifest.experiment_id);
+failedRoot = fullfile(experimentRoot, "failed");
+verifyTrue(testCase, isfolder(failedRoot));
+failedEntries = dir(failedRoot);
+failedEntries = failedEntries([failedEntries.isdir]);
+failedEntries = failedEntries(~ismember(string({failedEntries.name}), [".", ".."]));
+verifyEqual(testCase, numel(failedEntries), 1);
+diagnosticDirectory = fullfile(failedRoot, failedEntries(1).name);
+verifyTrue(testCase, isfolder(diagnosticDirectory));
+verifyTrue(testCase, contains(exceptionMessage, string(diagnosticDirectory)));
+diagnosticCsv = fullfile(diagnosticDirectory, manifest.experiment_id + "__diagnostic.csv");
+diagnosticMat = fullfile(diagnosticDirectory, manifest.experiment_id + "__diagnostic.mat");
+verifyTrue(testCase, isfile(diagnosticCsv));
+verifyTrue(testCase, isfile(diagnosticMat));
+completeEntries = dir(experimentRoot);
+completeEntries = completeEntries([completeEntries.isdir]);
+completeEntries = completeEntries(~ismember(string({completeEntries.name}), [".", "..", "failed"]));
+verifyEmpty(testCase, completeEntries);
+diagnostic = readtable(diagnosticCsv, "TextType", "string");
+failedRows = diagnostic.status == "failed";
+verifyEqual(testCase, nnz(failedRows), 1);
+verifyEqual(testCase, diagnostic.error_identifier(failedRows), "test:IntentionalCaseFailure");
+end
+
+function testManifestOutputBindingRejectsNegativeFixtures(testCase)
+manifest = small_manifest();
+modes = ["delay", "omega", "fixed_step", "solver", "omega_delay"];
+for mode = modes
+    outputRoot = tempname;
+    mkdir(outputRoot);
+    cleanup = onCleanup(@() rmdir(outputRoot, "s"));
+    root = project_root();
+    caught = false;
+    try
+        teleopdelay.experiment.run_manifest(manifest, root, ...
+            "OutputRoot", outputRoot, "SaveResults", true, ...
+            "CaseExecutor", @(definition, projectRoot) ...
+            mismatched_fixture_executor(definition, projectRoot, mode));
+    catch exception
+        caught = true;
+        verifyEqual(testCase, string(exception.identifier), ...
+            "teleopDelay:ExperimentIncomplete");
+    end
+    verifyTrue(testCase, caught);
+    diagnosticDirectory = find_diagnostic_directory(outputRoot, manifest.experiment_id);
+    diagnosticCsv = fullfile(diagnosticDirectory, manifest.experiment_id + "__diagnostic.csv");
+    verifyTrue(testCase, isfile(diagnosticCsv));
+    diagnostic = readtable(diagnosticCsv, "TextType", "string");
+    failedRows = diagnostic.status == "failed";
+    verifyEqual(testCase, nnz(failedRows), 1);
+    verifyEqual(testCase, diagnostic.error_identifier(failedRows), ...
+        "teleopDelay:ExperimentCaseOutputMismatch");
+    clear cleanup;
+end
+end
+
 function manifest = small_manifest()
 manifest = teleopdelay.experiment.standard_manifest( ...
     "TrajectoryTypes", ["circle", "lissajous_1_2"], ...
@@ -127,6 +201,36 @@ if definition.delay_s == 0.1 && definition.omega_rad_s == 0.5 && ...
     error("test:IntentionalCaseFailure", "Intentional fixture failure.");
 end
 output = fixture_output(definition);
+end
+
+function output = mismatched_fixture_executor(definition, ~, mode)
+output = fixture_output(definition);
+if definition.trajectory ~= "lissajous_1_2" || definition.delay_s ~= 0.1
+    return;
+end
+switch string(mode)
+    case "delay"
+        output.config.communication.delay = definition.delay_s + 0.01;
+    case "omega"
+        output.config.trajectory.omega = definition.omega_rad_s + 0.5;
+    case "fixed_step"
+        output.config.simulation.fixed_step = definition.fixed_step_s + 0.001;
+        output.simulation.fixed_step_s = output.config.simulation.fixed_step;
+    case "solver"
+        output.config.simulation.solver = "ode45";
+        output.simulation.solver = "ode45";
+    case "omega_delay"
+        output.evaluation.omega_delay = output.evaluation.omega_delay + 1.0;
+end
+end
+
+function directory = find_diagnostic_directory(outputRoot, experimentId)
+failedRoot = fullfile(outputRoot, experimentId, "failed");
+entries = dir(failedRoot);
+entries = entries([entries.isdir]);
+entries = entries(~ismember(string({entries.name}), [".", ".."]));
+assert(numel(entries) == 1);
+directory = fullfile(failedRoot, entries(1).name);
 end
 
 function output = fixture_output(definition)

@@ -6,8 +6,9 @@ function testRepresentativeCaseIsDeterministicAndClean(testCase)
 root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
 close_models(paths);
-beforeHashes = [sha256_file(paths.plant), sha256_file(paths.communication), ...
-    sha256_file(paths.system)];
+beforeHashes = [teleopdelay.experiment.sha256_file(paths.plant), ...
+    teleopdelay.experiment.sha256_file(paths.communication), ...
+    teleopdelay.experiment.sha256_file(paths.system)];
 pathBefore = path;
 directoryBefore = pwd;
 baseNames = ["time_constant_s", "sample_period_s", "delay_s"];
@@ -43,21 +44,13 @@ close_models(paths);
 verifyFalse(testCase, bdIsLoaded(paths.plantModelName));
 verifyFalse(testCase, bdIsLoaded(paths.communicationModelName));
 verifyFalse(testCase, bdIsLoaded(paths.systemModelName));
-verifyEqual(testCase, [sha256_file(paths.plant), sha256_file(paths.communication), ...
-    sha256_file(paths.system)], beforeHashes);
+verifyEqual(testCase, [teleopdelay.experiment.sha256_file(paths.plant), ...
+    teleopdelay.experiment.sha256_file(paths.communication), ...
+    teleopdelay.experiment.sha256_file(paths.system)], beforeHashes);
 for index = 1:numel(baseNames)
     verifyEqual(testCase, evalin("base", "exist('" + baseNames(index) + "', 'var')"), ...
         baseBefore(index));
 end
-end
-
-function hash = sha256_file(filePath)
-command = ['(Get-FileHash -LiteralPath "' char(filePath) ...
-    '" -Algorithm SHA256).Hash'];
-[status, output] = system(['powershell -NoProfile -NonInteractive -Command "' ...
-    command '"']);
-assert(status == 0);
-hash = string(strtrim(output));
 end
 
 function close_models(paths)

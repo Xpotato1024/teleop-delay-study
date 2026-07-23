@@ -312,3 +312,11 @@ case例外はcase boundaryで捕捉して残りのcaseを継続します。1件�
 ### persistence contract
 
 complete runは `<experiment_id>__aggregate.csv` と `<experiment_id>__results.mat` を一時directoryへ保存し、CSV/MATを再読込してrow数、列名、case_id、status、主要数値、manifest、metadata、全case output schemaを検証した後、同一filesystem上のfinal run directoryへrenameします。MATにはmanifest、aggregate table、execution metadata、全caseのconfig・trajectory・simulation・evaluation、run statusを保存します。一時complete artifactは失敗時に削除します。
+
+### manifest/output binding とchecksum
+
+successful caseは、manifestのtrajectory、amplitude、omega、delay、sample period、plant time constant、dt、fixed step、solver、total cycles、warm-up cycles、simulation durationと`output.config`を照合してからaggregateへ渡します。文字列とcycle数は完全一致、doubleはmachine precision由来の狭いscale-aware判定とします。`simulation.solver`、`simulation.fixed_step_s`、simulation endpoint、evaluationの`omega_delay`、`omega_time_constant`、`omega_sample_period`、`omega_mean_packet_age`も同じ境界で検証し、不一致は`teleopDelay:ExperimentCaseOutputMismatch`としてfail-closedに扱います。
+
+`SaveResults=false`は成功時のcomplete CSV/MATだけを抑制します。1件でも失敗したrunでは、同じ設定に関係なくfailed diagnostic CSV/MATを保存し、実在するdiagnostic directoryを含む`teleopDelay:ExperimentIncomplete`を送出します。
+
+CSV/MATとtracked modelのSHA-256は`teleopdelay.experiment.sha256_file`のbinary readとJava `java.security.MessageDigest`で計算し、uppercase 64桁へ正規化します。外部shellへ依存せず、正常fileでhash計算不能または`unknown`を返す経路はありません。

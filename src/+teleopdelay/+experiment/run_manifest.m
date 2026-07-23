@@ -33,7 +33,7 @@ for index = 1:manifest.case_count
     cleanupCaseDirectory = onCleanup(@() cd(caseDirectory));
     try
         output = caseExecutor(definition, projectRoot);
-        validate_success_output(output, definition);
+        teleopdelay.experiment.validate_case_output(output, definition);
         caseResults{index} = struct( ...
             "case_id", string(definition.case_id), ...
             "status", "success", ...
@@ -82,20 +82,20 @@ bundle = struct( ...
     "experiment_id", string(manifest.experiment_id), ...
     "run_id", string(runId));
 
-if saveResults
-    if failedCount == 0
+if failedCount == 0
+    if saveResults
         artifact = teleopdelay.experiment.persist_results(bundle, outputRoot, false);
     else
-        try
-            artifact = teleopdelay.experiment.persist_results(bundle, outputRoot, true);
-        catch persistenceException
-            error("teleopDelay:ExperimentIncomplete", ...
-                "Experiment incomplete: %d failed case(s); diagnostic persistence failed [%s]: %s", ...
-                failedCount, persistenceException.identifier, persistenceException.message);
-        end
+        artifact = empty_artifact();
     end
 else
-    artifact = empty_artifact();
+    try
+        artifact = teleopdelay.experiment.persist_results(bundle, outputRoot, true);
+    catch persistenceException
+        error("teleopDelay:ExperimentIncomplete", ...
+            "Experiment incomplete: %d failed case(s); diagnostic persistence failed [%s]: %s", ...
+            failedCount, persistenceException.identifier, persistenceException.message);
+    end
 end
 
 if failedCount > 0
@@ -107,45 +107,6 @@ end
 result = bundle;
 result.artifact = artifact;
 clear cleanupDirectory cleanupPath;
-end
-
-function validate_success_output(output, definition)
-required = ["config", "trajectory", "simulation", "evaluation"];
-if ~isstruct(output) || ~all(isfield(output, required))
-    error("teleopDelay:ExperimentCaseOutputInvalid", ...
-        "A successful case executor must return config, trajectory, simulation, and evaluation.");
-end
-if string(output.config.trajectory.type) ~= string(definition.trajectory)
-    error("teleopDelay:ExperimentCaseOutputInvalid", ...
-        "The case executor returned a different trajectory type.");
-end
-simulation = output.simulation;
-if ~isfield(simulation, "time_s") || ~(iscolumn(simulation.time_s) && ...
-        isa(simulation.time_s, "double") && all(isfinite(simulation.time_s)))
-    error("teleopDelay:ExperimentCaseOutputInvalid", ...
-        "simulation.time_s must be a finite double column.");
-end
-if abs(simulation.time_s(end) - definition.duration_s) > ...
-        128 * eps(max([1, abs(simulation.time_s(end)), abs(definition.duration_s)]))
-    error("teleopDelay:ExperimentCaseOutputInvalid", ...
-        "The simulation endpoint is not the manifest duration.");
-end
-evaluationFields = ["sample_start_s", "sample_end_s", "mean_packet_age_s", ...
-    "omega_mean_packet_age", "rmse_zoh_m", "rmse_cv_m", "nrmse_zoh", ...
-    "nrmse_cv", "max_error_zoh_m", "max_error_cv_m", ...
-    "performance_ratio", "improvement_percent", "omega_delay", ...
-    "omega_time_constant", "omega_sample_period"];
-if ~all(isfield(output.evaluation, evaluationFields))
-    error("teleopDelay:ExperimentCaseOutputInvalid", ...
-        "A successful evaluation is missing one or more metric fields.");
-end
-for name = evaluationFields
-    value = output.evaluation.(char(name));
-    if ~(isa(value, "double") && isscalar(value) && isreal(value) && isfinite(value))
-        error("teleopDelay:ExperimentCaseOutputInvalid", ...
-            "Evaluation field %s must be a finite scalar.", name);
-    end
-end
 end
 
 function close_case_models(projectRoot)
