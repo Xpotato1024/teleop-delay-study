@@ -320,3 +320,43 @@ successful caseは、manifestのtrajectory、amplitude、omega、delay、sample 
 `SaveResults=false`は成功時のcomplete CSV/MATだけを抑制します。1件でも失敗したrunでは、同じ設定に関係なくfailed diagnostic CSV/MATを保存し、実在するdiagnostic directoryを含む`teleopDelay:ExperimentIncomplete`を送出します。
 
 CSV/MATとtracked modelのSHA-256は`teleopdelay.experiment.sha256_file`のbinary readとJava `java.security.MessageDigest`で計算し、uppercase 64桁へ正規化します。外部shellへ依存せず、正常fileでhash計算不能または`unknown`を返す経路はありません。
+## 11. Issue #9 分析pipeline
+
+`run_issue9_analysis.m`はIssue #8のcomplete MATを明示的に受け取り、`src/+teleopdelay/+analysis/`の責務を順に呼び出します。
+
+```text
+explicit InputMat
+  -> load_input / fail-closed schema validation / SHA-256
+  -> classification (G=RMSE_CV/RMSE_ZOH)
+  -> deterministic representative selection
+  -> discrete adjacent boundary brackets
+  -> dimensionless diagnostics and identifiability rank
+  -> theory candidate q=2 sin(q)
+  -> optional representative convergence study
+  -> headless PNG/PDF renderers
+  -> CSV/MAT tables and atomic persistence
+```
+
+`render-only`は標準40 caseのsimulationを行わず、保存済みconvergence artifactがある場合だけそのtableを読みます。`full`は保存済み40 caseを置換せず、best improvement、nearest boundary、worst degradation（またはfallback）のunique representativeだけをfixed-step `0.005` s / `0.0025` sで比較します。sample period `0.020` sとのalignmentを検証し、model hash、path、pwd、model close、base workspace非残留を確認します。
+
+## 12. Issue #9 入力・分類・境界契約
+
+入力は`run_status=complete`、success 40、failed 0、aggregate 40 rows、manifest/cases 40、case_id一意、条件一意、circle 20、lissajous_1_2 20、delay 5値、omega 4値でなければ拒否します。各caseのconfig、trajectory、simulation、evaluationの必須field、`N x 1` time、`N x 2` position、evaluation mask、有限metric、aggregateとのcase_id/条件/metric一致も検証します。不完全結果を部分描画しません。
+
+分類は`G = RMSE_CV / RMSE_ZOH`、`improvement_percent=(1-G)*100`です。full modeの許容幅は
+
+```text
+max(machine_precision_floor, safety_factor * maximum_convergence_delta_G)
+```
+
+で、safety factorとmachine-precision floorをanalysis metadataへ保存します。収束artifactのないrender-onlyはmachine-precision-only classificationとして扱います。
+
+boundary tableは各trajectoryの5 x 4 gridで、fixed omegaの隣接delay pairとfixed delayの隣接omega pairだけを記録します。improvement/degradationを挟むpair、equivalentを含むpair、G=1に最も近いpairを区別し、interpolationを正式結果へ使いません。
+
+円軌道の理論比較は、理想正弦波で`E_ZOH^2=2(1-cos(q))`、`E_CV^2=(1-cos(q))^2+(q-sin(q))^2`と置いたときの`q=2 sin(q)`の最初の正の非零解`q=1.895494267...`です。repository内に文献出典は確認できないため、文献値ではなく解析候補として扱います。円では`omega*delay`と`omega*mean_packet_age`、Lissajousではbase `q1`とsecond component `q2=2q1`を表示し、単一qへの完全なcollapseは主張しません。
+
+`omega*time_constant`と`omega*sample_period`は標準40 caseで固定定数をomegaへ掛けた列であり、design matrixのrank・exact/near collinearity・独立識別可否をtableへ保存します。rank deficientな列について多変量係数や因果寄与を解釈せず、p-valueも使用しません。
+
+## 13. Issue #9 artifact persistence
+
+出力は`results/generated/analysis/<experiment_id>/<analysis_id>/<analysis_run_id>/`へtemporary directoryからatomic renameします。analysis IDはinput experiment ID、input MAT SHA-256、analysis schema/config、boundary tolerance contract、convergence configから決定し、timestampはrun directoryだけに使います。8 figureは各PNG 300 dpiとvector PDFで、CSV table、`analysis_tables.mat`、metadata、`figure_manifest.csv`とともに保存します。生成物はGit追跡しません。

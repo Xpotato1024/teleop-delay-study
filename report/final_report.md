@@ -117,4 +117,20 @@ cleanなMATLAB sessionからrepository rootで次を実行すると、manifest�
 result = run_standard_experiment();
 ```
 
-生成結果は `results/generated/<experiment_id>/<run_id>/` に保存される。ここでは結果の解釈、図、境界解析、結論を追加しない。
+生成結果は `results/generated/<experiment_id>/<run_id>/` に保存される。
+
+## Issue #9 解析成果（実験結果の追記）
+
+Issue #8のcomplete MATを明示入力として、標準40 caseを再実行せずに図・analysis table・境界tableを生成した。入力SHA-256は`E21B8B7486C89010A390CBF52BFF6286E6B217A5D911544D5102E39D87CDDEC8`である。
+
+分類量は`G=RMSE_CV/RMSE_ZOH`、改善率は`(1-G)*100`とした。full modeの収束studyでは代表5 unique caseをfixed-step `0.005` sから`0.0025` sへ半減し、最大`|delta G|=0.0019707`、safety factor 4によるboundary tolerance約`0.0079`を得た。全収束行はvalidatedであり、標準40 case aggregateは置換していない。
+
+| trajectory | improvement | equivalent | degradation |
+|---|---:|---:|---:|
+| circle | 19 | 0 | 1 |
+| lissajous_1_2 | 18 | 0 | 2 |
+| total | 37 | 0 | 3 |
+
+代表条件は、circleではbest improvementが`omega=0.5 rad/s, delay=0 s`、worst/nearestが`omega=4 rad/s, delay=0.5 s`、Lissajousではbestが`omega=0.5 rad/s, delay=0 s`、worstが`omega=4 rad/s, delay=0.5 s`、nearestが`omega=2 rad/s, delay=0.5 s`である。図2–3はreference/ZOH/CV trajectory、図4はLissajous誤差normと加速度event、図5–6は離散delay×omega map、図7–8は`omega*delay`と`omega*mean_packet_age`を表示する。
+
+円軌道の`q≈1.895`は文献値としては扱わず、理想正弦波で`E_CV=E_ZOH`を置いた`q=2 sin(q)`の最初の正の非零解という解析候補として比較する。sampled communication、packet-age変動、plant dynamics、fixed-step error、Lissajousの2周波数成分を無視するため、実測境界との一致を断定しない。`omega*time_constant`と`omega*sample_period`は標準designで独立効果を識別できない可能性をrank/collinearity tableへ記録し、因果寄与や統計的有意差は解釈しない。

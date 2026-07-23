@@ -14,11 +14,11 @@
 2. 通信遅延あり・ゼロ次ホールド（ZOH）
 3. 通信遅延あり・定速度デッドレコニング（CV）
 
-ロボット応答は各軸独立の一次遅れ系で表します。決定論的な中心軌道として円軌道とLissajous軌道を用い、P1では周期運動以外への頑健性を確認するため、通過点間を結ぶ最小ジャーク軌道を追加します。
+ロボット応答は各軸独立の一次遅れ系で表します。決定論的な中心軌道として円軌道と1:2 Lissajous軌道を用います。
 
 ## 現在の状態
 
-現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、ZOH/CV/referenceの3つの一次遅れplant、headless simulation、出力logging、評価window、追従誤差metricsまでを実装しています。parameter sweep、CSV/MAT保存、作図、境界解析は後続Issueの対象です。
+現在は、MATLAB package、固定時間grid、円軌道と1:2 Lissajous軌道、独立した通信Model Reference、ZOH/CV指令再構成、ZOH/CV/referenceの3つの一次遅れplant、headless simulation、出力logging、評価window、追従誤差metrics、標準40 caseの保存、結果図・境界解析までを実装しています。
 
 `run_project()`の公開outputは`config`、`trajectory`、`simulation`、`evaluation`です。`simulation`は次のschemaを持ちます。
 
@@ -153,3 +153,15 @@ result = run_standard_experiment();
 ```
 
 生成物は `results/generated/<experiment_id>/<run_id>/` に保存されます。complete runはaggregate CSVと全case時系列を含むMATを持ち、CSV/MATのround-trip検証後に確定します。`results/generated/` は `.gitignore` 対象です。
+
+## Issue #9 結果図とCV有効境界解析
+
+Issue #8のcomplete MATを明示的な入力として指定します。既定の`render-only`は保存済み40 caseを再simulationせず、図・CSV・MAT tableを再生成します。
+
+```matlab
+inputMat = "C:/absolute/path/to/i8v1_n40_2353bb12__results.mat";
+fullResult = run_issue9_analysis("InputMat", inputMat, "Mode", "full");
+renderResult = run_issue9_analysis("InputMat", inputMat, "Mode", "render-only");
+```
+
+`full`は自動選定した代表caseだけをfixed-step `0.005` sから`0.0025` sへ半減して収束を確認した後、全図・全tableを生成します。`render-only`で保存済み収束artifactも使う場合は、必要に応じて`"ConvergenceMat", ".../analysis_tables.mat"`を明示できます。出力先は`results/generated/analysis/<experiment_id>/<analysis_id>/<analysis_run_id>/`で、PNG/PDF、analysis table CSV、`analysis_tables.mat`、metadata、figure manifestを含みます。生成物は`.gitignore`対象です。
