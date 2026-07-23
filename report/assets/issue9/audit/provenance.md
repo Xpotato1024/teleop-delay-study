@@ -4,14 +4,14 @@
 |---|---|
 | repository | `Xpotato1024/teleop-delay-study` |
 | Issue | `#10` Phase A（source: `#9`） |
-| source commit | `7e0eee925123c890d157caf5aa9529a9487a5159` |
-| source artifact directory | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T143927921Z__7e0eee9` |
+| source commit | `fb27487` |
+| source artifact directory | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T152620103Z__fb27487` |
 | source experiment ID | `i8v1_n40_2353bb12` |
 | source input run ID | `20260723T013408166Z__0b95b1a` |
 | source input SHA-256 | `E21B8B7486C89010A390CBF52BFF6286E6B217A5D911544D5102E39D87CDDEC8` |
 | convergence artifact path | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T120651252Z__3cc0b6b/analysis_tables.mat` |
 | convergence artifact SHA-256 | `157D22F59D10CA1F3972FFF7F5B5E7BAF8FFBCFE1909E5750891631F89D027F2` |
-| source artifact manifest SHA-256 | `A80447AE60179D87C4066EB2E85B4417AECFF06EA302447C1BEF4C042994CE90` |
+| source artifact manifest SHA-256 | `6DAAF449F2BCFE57E4C2F9502C1CEEBEA78D6BD464A8FA59BF3D4DD63810FA96` |
 | 日本語font | `Noto Sans JP` |
 | figure count | 8（PNG 8、vector PDF 8） |
 | table count | 11 CSV |
