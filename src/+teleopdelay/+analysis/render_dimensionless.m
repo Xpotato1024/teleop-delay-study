@@ -43,6 +43,7 @@ for panel = 1:2
     legend("Location", "best");
 end
 sgtitle(layout, "Dimensionless organization: " + metricName + " (theory lines are ideal candidates only)");
+teleopdelay.analysis.style_figure(fig);
 caption = "G against " + xLabel + " for circle and 1:2 Lissajous. The ideal sinusoid candidate is a comparison line, not an empirical boundary.";
 entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
     "trajectory", "circle|lissajous_1_2", ...

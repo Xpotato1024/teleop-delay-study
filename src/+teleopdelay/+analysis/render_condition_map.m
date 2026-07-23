@@ -35,6 +35,7 @@ for index = 1:height(selectedBrackets)
 end
 plot(nan, nan, "kx", "LineWidth", 1.7, "MarkerSize", 10);
 legend("G=1 adjacent bracket cells", "Location", "best");
+teleopdelay.analysis.style_figure(fig);
 caption = "Discrete 5-by-4 delay/omega grid; cell text is G and crosses mark adjacent G=1 brackets. No interpolated measured boundary is drawn.";
 entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
     "trajectory", trajectory, "case_ids", strjoin(string(classification.case_id(classification.trajectory == trajectory)), "|"), ...

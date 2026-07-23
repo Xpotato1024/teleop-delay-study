@@ -55,6 +55,7 @@ for index = 1:numel(selected)
     end
 end
 sgtitle(layout, string(trajectory) + " representative trajectories");
+teleopdelay.analysis.style_figure(fig);
 caption = "Reference, ZOH, and CV plant paths for automatically selected " + ...
     string(trajectory) + " cases; green circle=start and orange square=end.";
 entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
