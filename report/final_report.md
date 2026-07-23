@@ -327,6 +327,7 @@ acceleration_mps2 = [ ...
 **プログラム 3　追従誤差と性能比の計算**
 
 ```matlab
+evaluation_packet_age = simulation.packet_age_s(mask);
 reference = simulation.reference_position_xy_m;
 zoh_error = simulation.zoh_position_xy_m - reference;
 cv_error = simulation.cv_position_xy_m - reference;
@@ -340,18 +341,19 @@ max_error_cv_m = max(cv_error_norm(mask));
 
 zero_tolerance_m = 32 * eps( ...
     max([1; abs(rmse_zoh_m); abs(rmse_cv_m)]));
-if rmse_zoh_m <= zero_tolerance_m && ...
-        rmse_cv_m <= zero_tolerance_m
+zoh_is_zero = rmse_zoh_m <= zero_tolerance_m;
+cv_is_zero = rmse_cv_m <= zero_tolerance_m;
+if zoh_is_zero && cv_is_zero
     performance_ratio = 1.0;
     improvement_percent = 0.0;
-elseif rmse_zoh_m <= zero_tolerance_m
+elseif zoh_is_zero
     error("teleopDelay:UndefinedPerformanceRatio", ...
-        "performance_ratio is undefined.");
+        "performance_ratio is undefined when only the ZOH RMSE is zero.");
 else
     performance_ratio = rmse_cv_m / rmse_zoh_m;
     improvement_percent = (1.0 - performance_ratio) * 100.0;
 end
-mean_packet_age_s = mean(simulation.packet_age_s(mask));
+mean_packet_age_s = mean(evaluation_packet_age);
 ```
 
 掲載したコードは主要処理に限定した。実装では、入力shape、時刻整合、パケット有効性、零除算、非有限値および保存結果の整合性を検証し、不正な条件を黙って評価しない。
