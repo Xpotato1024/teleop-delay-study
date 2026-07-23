@@ -38,7 +38,7 @@ end
 function convergence = try_load(file, input, config) %#ok<INUSD>
 convergence = empty_convergence("invalid");
 try
-    data = load(file, "convergence", "metadata");
+    data = load(file, "convergence", "metadata", "convergence_metadata");
 catch
     return;
 end
@@ -56,6 +56,9 @@ elseif istable(value)
 end
 if convergence.available && isfield(data, "metadata") && isfield(data.metadata, "source_mat_sha256")
     convergence.available = string(data.metadata.source_mat_sha256) == string(input.source_mat_sha256);
+end
+if convergence.available && isfield(data, "convergence_metadata")
+    convergence.metadata = data.convergence_metadata;
 end
 if convergence.available
     required = ["case_id", "base_performance_ratio", "refined_performance_ratio", ...
