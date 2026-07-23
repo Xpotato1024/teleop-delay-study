@@ -13,7 +13,7 @@ for rowIndex = 1:numel(delays)
     end
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1050, 750]);
-cleanup = onCleanup(@() close(fig));
+cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
 imagesc(omegas, delays, map); set(gca, "YDir", "normal"); hold on;
 colormap(fig, parula(256)); clim([min(allG), max(allG)]); colorbar;
 xlabel("omega [rad/s]"); ylabel("delay [s]");
@@ -41,5 +41,6 @@ entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct
     "trajectory", trajectory, "case_ids", strjoin(string(classification.case_id(classification.trajectory == trajectory)), "|"), ...
     "caption", caption, "metric", "performance_ratio G", ...
     "axes_contract", "omega [rad/s] versus delay [s]; discrete cells only; common G scale across trajectories"), config.figure_dpi);
+teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end

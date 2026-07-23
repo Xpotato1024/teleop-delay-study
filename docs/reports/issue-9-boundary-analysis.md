@@ -61,3 +61,9 @@ CSV/MAT tableは`case_classification`、`extreme_cases`、`nearest_boundary_case
 ## 識別可能性と制限
 
 `omega*time_constant`と`omega*sample_period`は固定値をomegaへ掛けた列であり、design matrixのrank/collinearityをtableへ保存する。この40 caseだけから両者の独立した因果寄与を分離できないため、多変量係数やp-valueは使用しない。Lissajousを単一正弦波へ置換せず、方向変化・高加速度と誤差peakの時間的対応は観察結果として示し、因果関係とは断定しない。離散grid外の境界、packet loss/jitter、実ネットワーク、別軌道、統計的有意差は対象外である。
+
+## P1/P2 re-review addendum
+
+dimensionless、代表case、boundary、figure 7/8のsource tableは`case_id` joinで構築し、入力aggregateのrow permutationに依存しないことをfixtureで確認した。InputMat validatorはmanifest 40要素、top-level/metadata ID、全condition、trajectory/simulation time alignment、evaluation mask、packet validity、再計算metric・無次元量をfail-closedに検証する。
+
+収束artifactは空tableを保存済み結果と呼ばず、候補ごとの拒否理由をdiagnosticへ記録する。有効候補のsemantic contentが異なる場合はstable ambiguity error、同一内容ならcanonical path順で選択する。relative deltaは真の相対差であり、`analysis_tables.mat`のself hashはmetadataから除外して`artifact_manifest.csv`へ最終MATを記録する。event acceleration percentileはconfig値をselection、caption、axes contractで共有する。

@@ -20,7 +20,7 @@ if isempty(selected)
     error("teleopDelay:AnalysisFigureDataMissing", "No representative path case was selected for %s.", trajectory);
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1400, 650]);
-cleanup = onCleanup(@() close(fig));
+cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
 layout = tiledlayout(1, numel(selected), "TileSpacing", "compact", "Padding", "compact");
 allPositions = [];
 for index = 1:numel(selected)
@@ -62,5 +62,6 @@ entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct
     "trajectory", trajectory, "case_ids", strjoin(selected, "|"), "caption", caption, ...
     "metric", "reference/ZOH/CV trajectory position", ...
     "axes_contract", "x [m], y [m], equal aspect ratio, start/end markers"), config.figure_dpi);
+teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end

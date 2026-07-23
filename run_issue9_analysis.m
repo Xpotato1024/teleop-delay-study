@@ -16,6 +16,7 @@ addParameter(parser, "OutputRoot", fullfile(projectRoot, "results", "generated")
 addParameter(parser, "Mode", "render-only", @(value) ischar(value) || isstring(value));
 addParameter(parser, "SaveResults", true, @(value) islogical(value) && isscalar(value));
 addParameter(parser, "ConvergenceMat", "", @(value) ischar(value) || isstring(value));
+addParameter(parser, "EventAccelerationPercentile", 75.0);
 parse(parser, varargin{:});
 
 inputMat = string(parser.Results.InputMat);
@@ -34,6 +35,8 @@ startedAtUtc = utc_text(datetime("now", "TimeZone", "UTC"));
 
 input = teleopdelay.analysis.load_input(inputMat);
 config = teleopdelay.analysis.default_config();
+config.event_acceleration_percentile = parser.Results.EventAccelerationPercentile;
+config = teleopdelay.analysis.validate_config(config);
 machineTolerance = teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio);
 preliminaryClassification = teleopdelay.analysis.classify(input.aggregate, machineTolerance);
 preliminaryRepresentatives = teleopdelay.analysis.select_representatives( ...
@@ -45,7 +48,8 @@ if mode == "full"
     convergenceSource = "executed-in-full-mode";
 else
     convergence = teleopdelay.analysis.load_convergence(input, ...
-        parser.Results.ConvergenceMat, outputRoot, config);
+        parser.Results.ConvergenceMat, outputRoot, config, ...
+        ~ismember("ConvergenceMat", parser.UsingDefaults));
     convergenceSource = convergence.source;
 end
 

@@ -97,6 +97,216 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                 "teleopDelay:AnalysisInputSchemaMismatch");
         end
 
+        function testManifestCasesRequired(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "manifest-cases-missing");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testManifestAggregateCaseIdMismatchRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "manifest-case-id-mismatch");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputDuplicateCase");
+        end
+
+        function testShiftedTimeRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "shifted-time");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testNonmonotonicTimeRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "nonmonotonic-time");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testNanAccelerationRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "nan-acceleration");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testPacketValidTypeRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "double-packet-valid");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testInvalidEvaluationPacketRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "invalid-evaluation-packet");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testRecomputedMetricContradictionRejected(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "metric-contradiction");
+            testCase.verifyError(@() teleopdelay.analysis.load_input(file), ...
+                "teleopDelay:AnalysisInputSchemaMismatch");
+        end
+
+        function testDimensionlessCaseIdJoinIsPermutationInvariant(testCase)
+            data = issue9AnalysisTest.fixtureData();
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, data));
+            classification = teleopdelay.analysis.classify(input.aggregate, 1e-12);
+            theory = teleopdelay.analysis.theory();
+            diagnosticsFirst = teleopdelay.analysis.dimensionless(input.aggregate, classification, theory);
+            permutation = [17:40, 1:16];
+            diagnosticsSecond = teleopdelay.analysis.dimensionless(input.aggregate, ...
+                classification(permutation, :), theory);
+            first = sortrows(diagnosticsFirst, "case_id");
+            second = sortrows(diagnosticsSecond, "case_id");
+            testCase.verifyEqual(first(:, {'case_id', 'classification', 'q_delay', 'q_age', ...
+                'q1_age', 'q2_age', 'performance_ratio'}), ...
+                second(:, {'case_id', 'classification', 'q_delay', 'q_age', ...
+                'q1_age', 'q2_age', 'performance_ratio'}));
+        end
+
+        function testAnalysisTablesAreCaseIdPermutationInvariant(testCase)
+            data = issue9AnalysisTest.fixtureData();
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, data));
+            classification = teleopdelay.analysis.classify(input.aggregate, 1e-12);
+            config = teleopdelay.analysis.default_config();
+            theory = teleopdelay.analysis.theory();
+            firstRepresentatives = teleopdelay.analysis.select_representatives(input, classification, config);
+            firstBoundaries = teleopdelay.analysis.detect_boundaries(classification, theory, config);
+            permutation = [17:40, 1:16];
+            permuted = classification(permutation, :);
+            secondRepresentatives = teleopdelay.analysis.select_representatives(input, permuted, config);
+            secondBoundaries = teleopdelay.analysis.detect_boundaries(permuted, theory, config);
+            firstRepresentatives = sortrows(firstRepresentatives, {'trajectory', 'role'});
+            secondRepresentatives = sortrows(secondRepresentatives, {'trajectory', 'role'});
+            firstBoundaries = sortrows(firstBoundaries, {'trajectory', 'varied_axis', ...
+                'fixed_axis_value', 'lower_case_id', 'upper_case_id'});
+            secondBoundaries = sortrows(secondBoundaries, {'trajectory', 'varied_axis', ...
+                'fixed_axis_value', 'lower_case_id', 'upper_case_id'});
+            testCase.verifyEqual(firstRepresentatives.case_id, secondRepresentatives.case_id);
+            testCase.verifyEqual(firstRepresentatives.selection_reason, secondRepresentatives.selection_reason);
+            testCase.verifyEqual(firstBoundaries, secondBoundaries);
+        end
+
+        function testDimensionlessFigureSourceCaseIdsMatchClassification(testCase)
+            data = issue9AnalysisTest.fixtureData();
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, data));
+            classification = teleopdelay.analysis.classify(input.aggregate, 1e-12);
+            diagnostics = teleopdelay.analysis.dimensionless(input.aggregate, classification, ...
+                teleopdelay.analysis.theory());
+            figuresDirectory = string(tempname);
+            mkdir(figuresDirectory);
+            testCase.addTeardown(@() rmdir(figuresDirectory, "s"));
+            entry = teleopdelay.analysis.render_dimensionless(diagnostics, ...
+                teleopdelay.analysis.theory(), "omega_delay", "figure_test_dimensionless", ...
+                figuresDirectory, teleopdelay.analysis.default_config());
+            sourceIds = sort(string(strsplit(entry.case_ids, "|"))).';
+            classificationIds = sort(string(classification.case_id));
+            testCase.verifyEqual(sourceIds, classificationIds);
+            testCase.verifyTrue(isfile(fullfile(figuresDirectory, entry.filename_png)));
+            testCase.verifyTrue(isfile(fullfile(figuresDirectory, entry.filename_pdf)));
+            ageEntry = teleopdelay.analysis.render_dimensionless(diagnostics, ...
+                teleopdelay.analysis.theory(), "omega_mean_packet_age", ...
+                "figure_test_dimensionless_age", figuresDirectory, ...
+                teleopdelay.analysis.default_config());
+            ageSourceIds = sort(string(strsplit(ageEntry.case_ids, "|"))).';
+            testCase.verifyEqual(ageSourceIds, classificationIds);
+            testCase.verifyTrue(isfile(fullfile(figuresDirectory, ageEntry.filename_png)));
+            testCase.verifyTrue(isfile(fullfile(figuresDirectory, ageEntry.filename_pdf)));
+        end
+
+        function testEventPercentileConfigChangesEvents(testCase)
+            acceleration = [1; 2; 3; 4; 5];
+            [events75, threshold75] = teleopdelay.analysis.event_acceleration_mask(acceleration, 75);
+            [events40, threshold40] = teleopdelay.analysis.event_acceleration_mask(acceleration, 40);
+            testCase.verifyNotEqual(threshold75, threshold40);
+            testCase.verifyNotEqual(events75, events40);
+        end
+
+        function testInvalidEventPercentileRejected(testCase)
+            config = teleopdelay.analysis.default_config();
+            config.event_acceleration_percentile = 100.1;
+            testCase.verifyError(@() teleopdelay.analysis.validate_config(config), ...
+                "teleopDelay:AnalysisConfigInvalid");
+        end
+
+        function testRelativeDeltaScaleAwareContract(testCase)
+            tableValue = issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101);
+            testCase.verifyEqual(tableValue.relative_delta_rmse_zoh(1), 0.01, AbsTol=1e-12);
+            zeroBase = issue9AnalysisTest.convergenceFixtureTable(0, 1e-6);
+            testCase.verifyTrue(isfinite(zeroBase.relative_delta_rmse_zoh(1)));
+            negative = issue9AnalysisTest.convergenceFixtureTable(0.1, 0.099);
+            testCase.verifyLessThan(negative.delta_rmse_zoh_m(1), 0);
+            testCase.verifyGreaterThanOrEqual(negative.relative_delta_rmse_zoh(1), 0);
+        end
+
+        function testEmptyConvergenceArtifactIsNotAvailable(testCase)
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
+                issue9AnalysisTest.fixtureData()));
+            config = teleopdelay.analysis.default_config();
+            data = issue9AnalysisTest.convergenceData(input, ...
+                teleopdelay.analysis.convergence_table());
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, "", ...
+                "", config, true), "teleopDelay:AnalysisConvergenceMissing");
+        end
+
+        function testInvalidConvergenceCandidatesAreDiagnosed(testCase)
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
+                issue9AnalysisTest.fixtureData()));
+            config = teleopdelay.analysis.default_config();
+            root = string(tempname);
+            mkdir(root);
+            testCase.addTeardown(@() rmdir(root, "s"));
+            variants = ["source-sha-mismatch", "refined-step-mismatch", "solver-mismatch", ...
+                "duplicate-case-id", "nonvalidated", "empty-table"];
+            for index = 1:numel(variants)
+                data = issue9AnalysisTest.convergenceData(input, ...
+                    issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
+                data = issue9AnalysisTest.mutateConvergenceData(data, variants(index));
+                issue9AnalysisTest.writeConvergenceDirectory(data, root, "candidate" + string(index));
+            end
+            result = teleopdelay.analysis.load_convergence(input, "", root, config);
+            testCase.verifyFalse(result.available);
+            testCase.verifyEqual(height(result.diagnostics), numel(variants));
+            testCase.verifyTrue(all(~result.diagnostics.valid));
+            testCase.verifyTrue(all(strlength(result.diagnostics.reason) > 0));
+        end
+
+        function testDifferentValidConvergenceCandidatesAreAmbiguous(testCase)
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
+                issue9AnalysisTest.fixtureData()));
+            config = teleopdelay.analysis.default_config();
+            root = string(tempname);
+            mkdir(root);
+            testCase.addTeardown(@() rmdir(root, "s"));
+            first = issue9AnalysisTest.convergenceData(input, ...
+                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
+            second = issue9AnalysisTest.convergenceData(input, ...
+                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.102));
+            issue9AnalysisTest.writeConvergenceDirectory(first, root, "a");
+            issue9AnalysisTest.writeConvergenceDirectory(second, root, "b");
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, "", root, config), ...
+                "teleopDelay:AnalysisConvergenceAmbiguous");
+        end
+
+        function testSameSemanticConvergenceCandidatesUseDeterministicSelection(testCase)
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
+                issue9AnalysisTest.fixtureData()));
+            config = teleopdelay.analysis.default_config();
+            root = string(tempname);
+            mkdir(root);
+            testCase.addTeardown(@() rmdir(root, "s"));
+            data = issue9AnalysisTest.convergenceData(input, ...
+                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
+            issue9AnalysisTest.writeConvergenceDirectory(data, root, "b");
+            issue9AnalysisTest.writeConvergenceDirectory(data, root, "a");
+            result = teleopdelay.analysis.load_convergence(input, "", root, config);
+            testCase.verifyTrue(result.available);
+            testCase.verifyEqual(result.source, "saved-convergence-artifact");
+            testCase.verifyEqual(result.diagnostics.selected(1), true);
+            testCase.verifyEqual(sum(result.diagnostics.selected), 1);
+        end
+
         function testRenderOnlyDeterminismWithoutSimulation(testCase)
             file = issue9AnalysisTest.writeFixture(testCase, "valid");
             before = path;
@@ -124,6 +334,29 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
             testCase.verifyTrue(all(result.artifact.figure_manifest.file_size_png > 0));
             testCase.verifyFalse(any(isgraphics(findall(0, "Type", "figure"))));
             testCase.verifyTrue(isfile(fullfile(result.artifact.run_directory, "analysis_tables.mat")));
+            issue9AnalysisTest.verifyArtifactManifest(testCase, result.artifact.run_directory);
+        end
+
+        function testSavedFigureDeterminism(testCase)
+            file = issue9AnalysisTest.writeFixture(testCase, "valid");
+            firstRoot = string(tempname);
+            secondRoot = string(tempname);
+            mkdir(firstRoot);
+            mkdir(secondRoot);
+            testCase.addTeardown(@() rmdir(firstRoot, "s"));
+            testCase.addTeardown(@() rmdir(secondRoot, "s"));
+            first = run_issue9_analysis("InputMat", file, "Mode", "render-only", ...
+                "OutputRoot", firstRoot, "SaveResults", true);
+            second = run_issue9_analysis("InputMat", file, "Mode", "render-only", ...
+                "OutputRoot", secondRoot, "SaveResults", true);
+            firstManifest = sortrows(readtable(fullfile(first.artifact.run_directory, ...
+                "figure_manifest.csv")), "figure_id");
+            secondManifest = sortrows(readtable(fullfile(second.artifact.run_directory, ...
+                "figure_manifest.csv")), "figure_id");
+            testCase.verifyEqual(firstManifest(:, {'figure_id', 'trajectory', 'case_ids', ...
+                'caption', 'axes_contract'}), secondManifest(:, {'figure_id', 'trajectory', ...
+                'case_ids', 'caption', 'axes_contract'}));
+            testCase.verifyFalse(any(isgraphics(findall(0, "Type", "figure"))));
         end
     end
 
@@ -179,6 +412,25 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                     data.aggregate.rmse_zoh_m(1) = NaN;
                 case "aggregate-mismatch"
                     data.aggregate.performance_ratio(1) = 0.25;
+                case "manifest-cases-missing"
+                    data.manifest = rmfield(data.manifest, "cases");
+                case "manifest-case-id-mismatch"
+                    data.manifest.cases(1).case_id = "not-the-aggregate-case";
+                case "shifted-time"
+                    data.cases{1}.trajectory.time_s(2) = data.cases{1}.trajectory.time_s(2) + 0.001;
+                case "nonmonotonic-time"
+                    data.cases{1}.simulation.time_s(2) = data.cases{1}.simulation.time_s(1);
+                case "nan-acceleration"
+                    data.cases{1}.trajectory.acceleration_mps2(2, 1) = NaN;
+                case "double-packet-valid"
+                    data.cases{1}.simulation.packet_valid = double(data.cases{1}.simulation.packet_valid);
+                case "invalid-evaluation-packet"
+                    data.cases{1}.simulation.packet_valid(1) = false;
+                case "metric-contradiction"
+                    data.aggregate.performance_ratio(1) = 0.25;
+                    data.aggregate.improvement_percent(1) = 75;
+                    data.cases{1}.evaluation.performance_ratio = 0.25;
+                    data.cases{1}.evaluation.improvement_percent = 75;
                 case "valid"
                 otherwise
                     error("teleopDelay:TestFixtureInvalid", "Unknown fixture variant.");
@@ -223,7 +475,12 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
             aggregate.mean_packet_age_s = delayValues + 0.01;
             aggregate.omega_time_constant = omegaValues * 0.1;
             aggregate.omega_sample_period = omegaValues * 0.02;
+            aggregate.duration_s = 0.2 * ones(n, 1);
+            aggregate.evaluation_start_s = zeros(n, 1);
+            aggregate.evaluation_end_s = 0.2 * ones(n, 1);
             for index = 1:n
+                cases{index}.simulation.cv_position_xy_m = aggregate.performance_ratio(index) * ...
+                    cases{index}.simulation.zoh_position_xy_m;
                 cases{index}.evaluation.performance_ratio = aggregate.performance_ratio(index);
                 cases{index}.evaluation.improvement_percent = aggregate.improvement_percent(index);
                 cases{index}.evaluation.omega_delay = aggregate.omega_delay(index);
@@ -235,7 +492,14 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                 cases{index}.evaluation.nrmse_cv = aggregate.nrmse_cv(index);
                 cases{index}.evaluation.max_error_cv_m = aggregate.max_error_cv_m(index);
             end
-            manifest = struct("case_count", 40);
+            manifestCases = repmat(issue9AnalysisTest.fixtureManifestCase(cases{1}), n, 1);
+            for index = 1:n
+                manifestCases(index) = issue9AnalysisTest.fixtureManifestCase(cases{index});
+            end
+            manifest = struct("schema_version", "issue8.standard.v1", ...
+                "experiment_id", "fixture", "case_count", 40, ...
+                "condition_fields", ["trajectory", "omega_rad_s", "delay_s"], ...
+                "cases", manifestCases);
             metadata = struct("run_status", "complete", "success_case_count", 40, ...
                 "failed_case_count", 0, "total_case_count", 40, "git_commit_sha", "fixture", ...
                 "matlab_version", string(version), "run_id", "fixture", "experiment_id", "fixture", ...
@@ -244,27 +508,156 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                 "cases", {cases}, "run_status", "complete", "experiment_id", "fixture", "run_id", "fixture");
         end
 
+        function file = saveData(testCase, data)
+            file = string(tempname) + ".mat";
+            testCase.addTeardown(@() delete_if_exists(file));
+            save(file, '-struct', 'data', '-v7');
+        end
+
+        function entry = fixtureManifestCase(caseResult)
+            config = caseResult.config;
+            entry = struct("case_id", string(caseResult.case_id), ...
+                "canonical_key", "fixture|" + string(caseResult.case_id), ...
+                "trajectory", string(config.trajectory.type), ...
+                "amplitude_m", double(config.trajectory.amplitude), ...
+                "omega_rad_s", double(config.trajectory.omega), ...
+                "delay_s", double(config.communication.delay), ...
+                "sample_period_s", double(config.communication.sample_period), ...
+                "time_constant_s", double(config.plant.time_constant), ...
+                "dt_s", double(config.simulation.dt), ...
+                "fixed_step_s", double(config.simulation.fixed_step), ...
+                "total_cycles", double(config.evaluation.total_cycles), ...
+                "warmup_cycles", double(config.evaluation.warmup_cycles), ...
+                "solver", string(config.simulation.solver), ...
+                "nominal_duration_s", double(config.simulation.duration), ...
+                "expected_duration_s", double(config.simulation.duration), ...
+                "duration_s", double(config.simulation.duration));
+        end
+
+        function tableValue = convergenceFixtureTable(base, refined)
+            delta = refined - base;
+            denominator = max(abs(base), 64 * eps(max([1, abs(base), abs(refined)])));
+            relative = abs(delta) / denominator;
+            rows = {"best", "best", "circle", "case1", 1, 0, 0.005, 0.0025, 0.02, ...
+                base, refined, base, refined, 1, 1, delta, delta, 0, relative, relative, 0, ...
+                base, refined, base, refined, delta, delta, relative, relative, 8, true, "validated"};
+            tableValue = teleopdelay.analysis.convergence_table(rows);
+        end
+
+        function verifyArtifactManifest(testCase, directory)
+            sidecar = readtable(fullfile(directory, "artifact_manifest.csv"), ...
+                "Delimiter", ",", "VariableNamingRule", "preserve");
+            relative = string(sidecar.relative_path);
+            testCase.verifyFalse(any(relative == "artifact_manifest.csv"));
+            matIndex = find(relative == "analysis_tables.mat", 1);
+            testCase.verifyNotEmpty(matIndex);
+            matPath = fullfile(directory, "analysis_tables.mat");
+            testCase.verifyEqual(string(sidecar.sha256(matIndex)), ...
+                string(teleopdelay.experiment.sha256_file(matPath)));
+            metadataData = load(matPath, "metadata");
+            outputFiles = metadataData.metadata.output_files;
+            testCase.verifyFalse(any(string(outputFiles.relative_path) == "analysis_tables.mat"));
+            for index = 1:height(sidecar)
+                filePath = fullfile(directory, char(relative(index)));
+                fileInfo = dir(filePath);
+                testCase.verifyTrue(isfile(filePath));
+                testCase.verifyEqual(double(fileInfo.bytes), double(sidecar.size_bytes(index)));
+                testCase.verifyEqual(string(sidecar.sha256(index)), ...
+                    string(teleopdelay.experiment.sha256_file(filePath)));
+            end
+            for index = 1:height(outputFiles)
+                filePath = fullfile(directory, char(string(outputFiles.relative_path(index))));
+                fileInfo = dir(filePath);
+                testCase.verifyTrue(isfile(filePath));
+                testCase.verifyEqual(double(fileInfo.bytes), double(outputFiles.size_bytes(index)));
+                testCase.verifyEqual(string(outputFiles.sha256(index)), ...
+                    string(teleopdelay.experiment.sha256_file(filePath)));
+            end
+        end
+
+        function data = convergenceData(input, tableValue)
+            config = teleopdelay.analysis.default_config();
+            caseIds = string(tableValue.case_id);
+            convergenceMetadata = struct( ...
+                "analysis_schema_version", string(config.analysis_schema_version), ...
+                "convergence_schema_version", string(config.convergence.schema_version), ...
+                "source_mat_sha256", string(input.source_mat_sha256), ...
+                "source_experiment_id", string(input.source_experiment_id), ...
+                "solver", string(config.convergence.solver), ...
+                "base_fixed_step_s", config.convergence.base_fixed_step_s, ...
+                "refined_fixed_step_s", config.convergence.refined_fixed_step_s, ...
+                "sample_period_s", config.convergence.sample_period_s, ...
+                "alignment_ratio", 8, "alignment_valid", true, ...
+                "convergence_case_ids", caseIds);
+            metadata = struct("source_mat_sha256", string(input.source_mat_sha256), ...
+                "analysis_schema_version", string(config.analysis_schema_version));
+            data = struct( ...
+                "analysis_schema_version", string(config.analysis_schema_version), ...
+                "convergence_schema_version", string(config.convergence.schema_version), ...
+                "metadata", metadata, "convergence_metadata", convergenceMetadata, ...
+                "convergence", tableValue, ...
+                "convergence_artifact", struct("available", true, "table", tableValue, ...
+                "metadata", convergenceMetadata));
+        end
+
+        function file = saveConvergenceData(testCase, data)
+            file = string(tempname) + ".mat";
+            testCase.addTeardown(@() delete_if_exists(file));
+            save(file, '-struct', 'data', '-v7');
+        end
+
+        function writeConvergenceDirectory(data, root, name)
+            directory = fullfile(root, "analysis", "fixture", string(name), "run");
+            mkdir(directory);
+            save(fullfile(directory, "analysis_tables.mat"), '-struct', 'data', '-v7');
+        end
+
+        function data = mutateConvergenceData(data, variant)
+            switch string(variant)
+                case "source-sha-mismatch"
+                    data.metadata.source_mat_sha256 = "0" + extractAfter(string(data.metadata.source_mat_sha256), 1);
+                case "refined-step-mismatch"
+                    data.convergence_metadata.refined_fixed_step_s = 0.005;
+                case "solver-mismatch"
+                    data.convergence_metadata.solver = "ode45";
+                case "duplicate-case-id"
+                    data.convergence_artifact.table = [data.convergence_artifact.table; ...
+                        data.convergence_artifact.table];
+                case "nonvalidated"
+                    data.convergence_artifact.table.convergence_status(1) = "failed";
+                case "empty-table"
+                    data.convergence_artifact.table = teleopdelay.analysis.convergence_table();
+            end
+        end
+
         function caseResult = fixtureCase(caseId, trajectory, omega, delay)
             time = [0; 0.1; 0.2];
             position = [0, 0; 1, 0; 0, 1];
+            reference = zeros(3, 2);
+            zohPosition = ones(3, 2);
+            zohPosition(:, 2) = 0;
+            cvPosition = 0.5 * zohPosition;
             simulation = struct("time_s", time, "zoh_command_xy_m", position, ...
-                "cv_command_xy_m", position, "zoh_position_xy_m", position, ...
-                "cv_position_xy_m", position, "reference_position_xy_m", position, ...
-                "packet_timestamp_s", zeros(3, 1), "packet_age_s", 0.01 * ones(3, 1), ...
+                "cv_command_xy_m", position, "zoh_position_xy_m", zohPosition, ...
+                "cv_position_xy_m", cvPosition, "reference_position_xy_m", reference, ...
+                "packet_timestamp_s", zeros(3, 1), "packet_age_s", (delay + 0.01) * ones(3, 1), ...
                 "packet_valid", true(3, 1), "solver", "ode4", "fixed_step_s", 0.005);
             trajectoryResult = struct("type", trajectory, "time_s", time, ...
                 "position_m", position, "velocity_mps", position, "acceleration_mps2", position);
-            evaluation = struct("mask", true(3, 1), "rmse_zoh_m", 1, "rmse_cv_m", 0.5, ...
+            evaluation = struct("period_s", 2 * pi / omega, "total_cycles", 10, ...
+                "warmup_cycles", 2, "sample_start_s", 0, "sample_end_s", 0.2, ...
+                "sample_count", 3, "mask", true(3, 1), "rmse_zoh_m", 1, "rmse_cv_m", 0.5, ...
                 "nrmse_zoh", 1, "nrmse_cv", 0.5, "max_error_zoh_m", 1, ...
                 "max_error_cv_m", 0.5, "performance_ratio", 0.5, "improvement_percent", 50, ...
                 "mean_packet_age_s", delay + 0.01, "omega_delay", omega * delay, ...
                 "omega_mean_packet_age", omega * (delay + 0.01), "omega_time_constant", omega * 0.1, ...
-                "omega_sample_period", omega * 0.02);
+                "omega_sample_period", omega * 0.02, ...
+                "zero_tolerance_m", 32 * eps(max([1, 1, 0.5])));
             config = struct("trajectory", struct("type", trajectory, "amplitude", 1, "omega", omega), ...
                 "evaluation", struct("total_cycles", 10, "warmup_cycles", 2), ...
                 "communication", struct("delay", delay, "sample_period", 0.02), ...
                 "plant", struct("time_constant", 0.1), "simulation", struct("dt", 0.005, ...
-                "fixed_step", 0.005, "duration", 1.0, "solver", "ode4"));
+                "fixed_step", 0.005, "duration", 0.2, "solver", "ode4"));
             caseResult = struct("case_id", caseId, "status", "success", "config", config, ...
                 "trajectory", trajectoryResult, "simulation", simulation, "evaluation", evaluation);
         end

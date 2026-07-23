@@ -15,11 +15,10 @@ reference = caseResult.simulation.reference_position_xy_m(mask, :);
 zohError = vecnorm(caseResult.simulation.zoh_position_xy_m(mask, :) - reference, 2, 2);
 cvError = vecnorm(caseResult.simulation.cv_position_xy_m(mask, :) - reference, 2, 2);
 acceleration = vecnorm(caseResult.trajectory.acceleration_mps2(mask, :), 2, 2);
-sortedAcceleration = sort(acceleration);
-threshold = sortedAcceleration(max(1, ceil(0.75 * numel(sortedAcceleration))));
-events = acceleration >= threshold;
+[events, threshold] = teleopdelay.analysis.event_acceleration_mask( ...
+    acceleration, config.event_acceleration_percentile);
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1300, 750]);
-cleanup = onCleanup(@() close(fig));
+cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
 layout = tiledlayout(2, 1, "TileSpacing", "compact", "Padding", "compact");
 nexttile(layout);
 plot(t, zohError, "Color", [0.85, 0.20, 0.15], "LineWidth", 1.1); hold on;
@@ -30,7 +29,7 @@ legend("||x_{ZOH}-x_{ref}||", "||x_{CV}-x_{ref}||", "high-acceleration event", "
 title("Lissajous error time series");
 nexttile(layout);
 plot(t, acceleration, "Color", [0.20, 0.40, 0.20], "LineWidth", 1.1); hold on;
-yline(threshold, "k--", "75th percentile threshold");
+yline(threshold, "k--", compose("%.17gth percentile threshold", config.event_acceleration_percentile));
 scatter(t(events), acceleration(events), 10, "k", "filled");
 grid on; xlabel("time [s]"); ylabel("acceleration magnitude [m/s^2]");
 title(sprintf("direction-change diagnostic: %s, G=%.4g", row.case_id(1), classificationRow.performance_ratio(1)), ...
@@ -42,6 +41,8 @@ entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, ...
     "figure_04_lissajous_error_timeseries", struct( ...
     "trajectory", "lissajous_1_2", "case_ids", row.case_id(1), "caption", caption, ...
     "metric", "error norm and acceleration magnitude", ...
-    "axes_contract", "time [s], error [m], acceleration [m/s^2], 75th percentile event threshold"), config.figure_dpi);
+    "axes_contract", compose("time [s], error [m], acceleration [m/s^2], %.17gth percentile event threshold", ...
+    config.event_acceleration_percentile)), config.figure_dpi);
+teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end

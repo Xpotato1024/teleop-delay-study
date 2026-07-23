@@ -273,3 +273,11 @@ matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8
 Issue #9のartifactには8 figureのPNG/PDF、`case_classification`、`extreme_cases`、`nearest_boundary_cases`、`boundary_brackets`、`representative_cases`、`instantaneous_error_extremes`、`dimensionless_diagnostics`、`identifiability`、`convergence`、`figure_manifest`を保存します。分類許容幅はfull modeでは収束時の最大`|delta G|`に固定safety factorを掛け、render-onlyで収束artifactがない場合はmachine-precision-onlyとmetadataへ明記します。離散grid外の境界は実測結果として描画しません。
 
 収束studyではsample period `0.020` sとrefined step `0.0025` sの整数alignment、solver、model hash、path、pwd、model close、base workspace非残留を確認します。図のbinary hashはrenderer環境に依存し得るため、manifestのfile existence、size、source case IDs、axes contract、CSV/MAT source dataを再現性の正本とします。
+
+P1/P2のfocused確認は、row permutation、InputMat semantic negative fixture、収束artifact候補の空table・不整合・曖昧性・同一内容選択、relative delta、percentile設定、保存figure determinism、sidecar hash round-tripを含めて実行します。保存figure determinismは`SaveResults=false`の比較ではなく、同一input/configを2回保存し、figure ID、case ID、caption、axes contract、source table、PNG/PDF存在・非空を比較します。`artifact_manifest.csv`の各行は最終fileのsize・SHA-256を再計算して照合します。
+
+```powershell
+matlab -batch "addpath('src'); results=runtests('tests/unit/issue9AnalysisTest.m'); assert(all([results.Passed]))"
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','render-only'); assert(result.artifact.saved)"
+matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','full'); assert(result.artifact.saved)"
+```

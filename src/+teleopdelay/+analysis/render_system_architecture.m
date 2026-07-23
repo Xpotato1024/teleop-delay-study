@@ -2,7 +2,7 @@ function entry = render_system_architecture(figuresDirectory, config)
 % render_system_architecture  Draw the fixed analysis-facing system diagram.
 
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1500, 800]);
-cleanup = onCleanup(@() close(fig));
+cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
 axis off;
 annotation(fig, "textbox", [0.02, 0.87, 0.18, 0.08], "String", "continuous reference", ...
     "HorizontalAlignment", "center", "FontSize", 13, "Color", [0.05, 0.05, 0.05], "BackgroundColor", [0.86, 0.92, 1], "FitBoxToText", "off");
@@ -37,5 +37,6 @@ entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, ...
     "trajectory", "all", "case_ids", "", "caption", ...
     "Continuous reference, sampled communication, ZOH/CV reconstruction, three plants, and evaluation against reference.", ...
     "metric", "signal architecture", "axes_contract", "fixed layout; no data axes"), config.figure_dpi);
+teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end

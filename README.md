@@ -164,4 +164,4 @@ fullResult = run_issue9_analysis("InputMat", inputMat, "Mode", "full");
 renderResult = run_issue9_analysis("InputMat", inputMat, "Mode", "render-only");
 ```
 
-`full`は自動選定した代表caseだけをfixed-step `0.005` sから`0.0025` sへ半減して収束を確認した後、全図・全tableを生成します。`render-only`で保存済み収束artifactも使う場合は、必要に応じて`"ConvergenceMat", ".../analysis_tables.mat"`を明示できます。出力先は`results/generated/analysis/<experiment_id>/<analysis_id>/<analysis_run_id>/`で、PNG/PDF、analysis table CSV、`analysis_tables.mat`、metadata、figure manifestを含みます。生成物は`.gitignore`対象です。
+`full`は自動選定した代表caseだけをfixed-step `0.005` sから`0.0025` sへ半減して収束を確認した後、全図・全tableを生成します。`render-only`で保存済み収束artifactも使う場合は、必要に応じて`"ConvergenceMat", ".../analysis_tables.mat"`を明示できます。イベント抽出percentileを変更する場合は、例えば`"EventAccelerationPercentile", 80`を指定します。出力先は`results/generated/analysis/<experiment_id>/<analysis_id>/<analysis_run_id>/`で、PNG/PDF、analysis table CSV、`analysis_tables.mat`、`artifact_manifest.csv`、metadata、figure manifestを含みます。`analysis_tables.mat`自身のhashはMAT内metadataへ埋め込まず、sidecarで最終fileを記録します。生成物は`.gitignore`対象です。

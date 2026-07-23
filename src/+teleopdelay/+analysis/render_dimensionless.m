@@ -9,7 +9,7 @@ else
     metricName = "q_age";
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1250, 700]);
-cleanup = onCleanup(@() close(fig));
+cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
 layout = tiledlayout(1, 2, "TileSpacing", "compact", "Padding", "compact");
 trajectoryNames = ["circle", "lissajous_1_2"];
 colors = struct("improvement", [0.10, 0.50, 0.20], "equivalent", [0.85, 0.50, 0.05], ...
@@ -50,5 +50,6 @@ entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct
     "case_ids", strjoin(string(diagnostics.case_id), "|"), "caption", caption, ...
     "metric", "performance_ratio G versus " + metricName, ...
     "axes_contract", xLabel + ", G dimensionless, horizontal G=1, trajectory panels, ideal candidate lines"), config.figure_dpi);
+teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end

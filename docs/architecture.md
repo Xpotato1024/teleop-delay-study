@@ -360,3 +360,11 @@ boundary tableは各trajectoryの5 x 4 gridで、fixed omegaの隣接delay pair�
 ## 13. Issue #9 artifact persistence
 
 出力は`results/generated/analysis/<experiment_id>/<analysis_id>/<analysis_run_id>/`へtemporary directoryからatomic renameします。analysis IDはinput experiment ID、input MAT SHA-256、analysis schema/config、boundary tolerance contract、convergence configから決定し、timestampはrun directoryだけに使います。8 figureは各PNG 300 dpiとvector PDFで、CSV table、`analysis_tables.mat`、metadata、`figure_manifest.csv`とともに保存します。生成物はGit追跡しません。
+
+### P1/P2 fail-closed契約
+
+dimensionless diagnostics、代表case、boundary bracket、figure 7/8のsource tableは、aggregateの行位置ではなく`case_id`でclassificationと結合し、trajectory、delay、omega、case_idのcanonical順へ整列します。入力MATはmanifest、aggregate、cases、時系列、evaluation mask、再計算metric、無次元量をmachine-precision由来のscale-aware toleranceで照合し、不一致はstable errorで拒否します。
+
+収束artifactは、空table、source MAT SHA-256不一致、schema・solver・step・sample alignment不一致、重複case、未検証row、数式不一致をavailableとして扱いません。自動探索の候補はdiagnosticへ理由を残し、異なるsemantic contentを持つ有効候補が複数なら`teleopDelay:AnalysisConvergenceAmbiguous`で停止します。空または互換候補なしのrender-onlyはsaved convergenceではなくmachine-precision-onlyとしてmetadataへ記録します。
+
+`analysis_tables.mat`のmetadata.output_filesにはMAT自身を含めず、最終MATを含む全fileのsize・SHA-256はsidecarの`artifact_manifest.csv`へ保存します。sidecar自身は自己参照しません。MATとsidecarを含む一式はtemporary directoryで検証してからatomic renameします。収束のrelative deltaは`abs(refined-base)/max(abs(base), scaleAwareFloor)`とし、イベントpercentileは`config.event_acceleration_percentile`から図・selection reason・axes contractへ同じ実値を渡します。

@@ -170,3 +170,11 @@
 - 現入力の分類はcircle 19 improvement / 0 equivalent / 1 degradation、lissajous_1_2 18 / 0 / 2、合計37 / 0 / 3。representative selectionはmetricとcanonical case_idによる決定論的比較で、circleのnearest boundaryはomega=4, delay=0.5、Lissajousはomega=2, delay=0.5となった。
 - `q≈1.895`についてrepository内の文献出典・既存定義は確認できなかった。理想正弦波の`E_ZOH^2=2(1-cos(q))`、`E_CV^2=(1-cos(q))^2+(q-sin(q))^2`から`q=2 sin(q)`を導き、最初の正の非零解`1.895494267...`を解析候補として実装した。sampled communication、packet-age変動、plant、fixed-step error、Lissajous複数周波数を無視する候補であり、文献値・実測境界とは扱わない。
 - `omega*time_constant`と`omega*sample_period`は標準40 caseで固定定数をomegaへ掛けた列のため、design matrix rank/collinearityを保存し、独立効果を因果的に識別できるとは解釈しない。p-value/statistical significance testは追加しない。
+
+## 2026-07-23: Issue #9 P1/P2 re-review修正
+
+- 判断: dimensionless、代表case、boundary、figure 7/8のsource tableはaggregateのrow位置を使わず、`case_id`を正本としてcanonical順に結合する。固定permutation fixtureでclassification、q、G、selection、boundary、figure source IDの不変性を確認する。
+- 判断: convergence artifactは空・不整合・未検証をavailable扱いしない。候補診断を保持し、異なるsemantic contentの複数有効候補を`teleopDelay:AnalysisConvergenceAmbiguous`で拒否し、同一内容のみ決定論的に選択する。
+- 判断: InputMatはmanifest/cases/aggregateの条件、時系列shape・alignment、evaluation mask、packet validity、metric・無次元量再計算までmachine-precision由来で照合する。relative deltaは`abs(refined-base)/max(abs(base), scaleAwareFloor)`とする。
+- 判断: MAT自身のself hashはmetadata.output_filesから除外し、最終MATを含む全fileを`artifact_manifest.csv`へsidecar記録する。event acceleration percentileはconfigから描画・選定理由・axes contractへ共有する。
+- 検証: Issue #9 focused suiteは保存figureを実際に2回生成するdeterminismを含め、入力negative、収束候補、sidecar hash、relative delta、percentileを確認する。標準40 caseは再simulationしない。
