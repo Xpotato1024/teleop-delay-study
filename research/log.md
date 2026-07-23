@@ -147,3 +147,18 @@
 - 判断: evaluation.mask内の`packet_valid`は全sampleでtrueを要求する。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`で拒否し、invalid sampleだけを除外して評価区間を短縮しない。評価対象`packet_age_s`は有限かつ非負とする。
 - 判断: 8つのDataset elementすべての`Values.Time`をcanonical vectorと比較する。各vectorの`N x 1 double`、有限性、厳密単調増加性を確認し、比較toleranceは`32*eps`のmachine precision由来に限定する。不一致は`teleopDelay:MisalignedLoggedSignal`、個別time vector不正は`teleopDelay:InvalidLoggedTime`とする。
 - 検証: 固定`dt=0.1 s`、`period_s=1 s`、`total_cycles=2`、`warmup_cycles=1`のunit fixtureでcircleと1:2 Lissajousを同じmask index `11:21`（sample count `11`）として確認した。小配列の全valid、全invalid、混在、負age、logged time不一致fixtureを含むfocused unitは12/12、full unitは27/27で成功した。full modelは15/15、full integrationは4/4、smoke、run_project三形式、checkcode 18 files/0 messages、git diff --checkも成功した。
+## 2026-07-23: Issue #8 完全要因実験runnerと再現可能な結果保存
+
+- 判断: Issue #7で固定したreference plant、evaluation window、metrics schemaを再利用し、`teleopdelay.experiment` packageへ実験条件、case ID、逐次runner、aggregate、metadata、atomic persistenceを分離して追加した。
+- 標準条件: `circle` / `lissajous_1_2`、`dt = fixed step = 0.005 s`、sample period `0.020 s`、time constant `0.10 s`、delay 5値、omega 4値、10 cycles、warm-up 2 cycles、solver `ode4`。amplitudeはdefault configを使用した。
+- case ID: 全定義fieldのcanonical表現から生成し、入力配列の列挙順とloop indexに依存させない。manifest出力順はtrajectory、delay、omegaのcanonical順とした。
+- 保存: `results/generated/<experiment_id>/<run_id>/` をcomplete、`<experiment_id>/failed/<run_id>/` をfailed diagnosticとし、CSV/MATのround-trip validation後にatomic renameする。generated artifactはGit管理対象外とした。
+- 検証: MATLAB R2025b Update 5 / Simulink 25.2でfocused manifest 6/6、aggregation/persistence 3/3、runner 1/1、full unit 36/36、model 15/15、integration 5/5、smokeを確認した。標準40 caseは40/40 success、CSV/MAT round-trip成功、metadata success=40/failed=0、代表case全metrics最大絶対差0であった。
+- 保存結果: experiment_id `i8v1_n40_2353bb12`、run_id `20260722T173019944Z__c536477`。CSV 18,483 bytes、MAT 58,803,422 bytes。CSV/MATのSHA-256とmodel hashは実装報告へ記録した。結果解釈、figure、heatmap、境界解析は追加していない。
+
+## 2026-07-23: Issue #8 P1/P2 fail-closed follow-up
+
+- 判断: successful caseをaggregateへ格納する前に、manifest全条件と`output.config`、simulation solver/fixed step/endpoint、evaluationの`omega_*`派生値を照合する。double比較は固定decimal toleranceではなくmachine precision由来のscale-aware判定とし、不一致は`teleopDelay:ExperimentCaseOutputMismatch`でfailed扱いにする。
+- 判断: `SaveResults=false`はsuccessful complete artifactだけを抑制し、failed diagnostic CSV/MATは常に保存する。diagnostic persistence後の実在pathを`teleopDelay:ExperimentIncomplete`へ含め、complete artifact名を使わない。
+- 判断: SHA-256はPowerShell等の外部shellを使わず、`teleopdelay.experiment.sha256_file`のbinary readとJava `java.security.MessageDigest`へ統一した。CSV、MAT、model hash testが同じuppercase digest helperを使う。
+- 検証: focused P1/P2 7/7、full unit 40/40、full model 15/15、full integration 5/5、smokeを確認した。negative fixture 5種、`SaveResults=false` failure fixture、round-trip checksumを含む。standard 40 caseの最終再実行結果は実装報告とDraft PRへ追記する。

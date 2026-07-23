@@ -107,3 +107,14 @@ metrics unitでは評価config、period、grid rounding、境界sample inclusion
 ## 7. 参考文献
 
 <!-- 本文で実際に引用した確認済み文献だけを記載する。 -->
+## Issue #8 実験条件と再現手順
+
+本研究の標準完全要因実験は、`circle` と `lissajous_1_2` の2軌道、delay `{0, 0.10, 0.20, 0.40, 0.50} s`、omega `{0.5, 1.0, 2.0, 4.0} rad/s` の40 caseで構成する。`dt = fixed step = 0.005 s`、sample period `0.020 s`、plant time constant `0.10 s`、total cycles `10`、warm-up cycles `2`、solver `ode4`を固定する。trajectory amplitudeは既存default configを使用する。
+
+cleanなMATLAB sessionからrepository rootで次を実行すると、manifest生成、逐次Simulink実行、reference/ZOH/CV評価、aggregate CSV、全case時系列MAT保存、CSV/MAT round-trip検証までを再生成できる。
+
+```matlab
+result = run_standard_experiment();
+```
+
+生成結果は `results/generated/<experiment_id>/<run_id>/` に保存される。ここでは結果の解釈、図、境界解析、結論を追加しない。

@@ -6,9 +6,9 @@ function testRunProjectFormsAndModelHash(testCase)
 root = project_root();
 paths = teleopdelay.simulink.model_paths(root);
 close_models(paths);
-beforePlant = sha256_file(paths.plant);
-beforeCommunication = sha256_file(paths.communication);
-beforeSystem = sha256_file(paths.system);
+beforePlant = teleopdelay.experiment.sha256_file(paths.plant);
+beforeCommunication = teleopdelay.experiment.sha256_file(paths.communication);
+beforeSystem = teleopdelay.experiment.sha256_file(paths.system);
 pathBefore = path;
 addpath(root);
 cleanupPath = onCleanup(@() path(pathBefore));
@@ -18,9 +18,9 @@ verifyEqual(testCase, path, pathBefore);
 verifyFalse(testCase, bdIsLoaded(paths.plantModelName));
 verifyFalse(testCase, bdIsLoaded(paths.communicationModelName));
 verifyFalse(testCase, bdIsLoaded(paths.systemModelName));
-verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
-verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
-verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.plant), beforePlant);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.communication), beforeCommunication);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''sample_period_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''delay_s'', ''var'')'), 0);
@@ -38,9 +38,9 @@ verifyTrue(testCase, isfield(output, 'evaluation'));
 verify_evaluation_schema(testCase, output);
 clear cleanupPath;
 verifyEqual(testCase, path, pathBefore);
-verifyEqual(testCase, sha256_file(paths.plant), beforePlant);
-verifyEqual(testCase, sha256_file(paths.communication), beforeCommunication);
-verifyEqual(testCase, sha256_file(paths.system), beforeSystem);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.plant), beforePlant);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.communication), beforeCommunication);
+verifyEqual(testCase, teleopdelay.experiment.sha256_file(paths.system), beforeSystem);
 verifyEqual(testCase, evalin('base', 'exist(''time_constant_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''sample_period_s'', ''var'')'), 0);
 verifyEqual(testCase, evalin('base', 'exist(''delay_s'', ''var'')'), 0);
@@ -131,17 +131,6 @@ clear cleanupPath;
 clear cleanup;
 restore_writable(plantFile, communicationFile, systemFile, ...
     plantWasReadOnly, communicationWasReadOnly, systemWasReadOnly);
-end
-
-function hash = sha256_file(filePath)
-fileId = fopen(filePath, 'r');
-cleanup = onCleanup(@() fclose(fileId));
-bytes = fread(fileId, Inf, '*uint8');
-digest = java.security.MessageDigest.getInstance('SHA-256');
-digest.update(bytes);
-hashBytes = typecast(digest.digest(), 'uint8');
-hash = lower(reshape(dec2hex(hashBytes, 2).', 1, []));
-clear cleanup;
 end
 
 function restore_writable(plantFile, communicationFile, systemFile, ...
