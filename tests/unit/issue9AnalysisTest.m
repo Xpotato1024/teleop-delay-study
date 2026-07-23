@@ -228,44 +228,50 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
         end
 
         function testRelativeDeltaScaleAwareContract(testCase)
-            tableValue = issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101);
+            tableValue = issue9AnalysisTest.convergenceMetricFixtureTable(0.1, 0.101);
             testCase.verifyEqual(tableValue.relative_delta_rmse_zoh(1), 0.01, AbsTol=1e-12);
-            zeroBase = issue9AnalysisTest.convergenceFixtureTable(0, 1e-6);
+            zeroBase = issue9AnalysisTest.convergenceMetricFixtureTable(0, 1e-6);
             testCase.verifyTrue(isfinite(zeroBase.relative_delta_rmse_zoh(1)));
-            negative = issue9AnalysisTest.convergenceFixtureTable(0.1, 0.099);
+            negative = issue9AnalysisTest.convergenceMetricFixtureTable(0.1, 0.099);
             testCase.verifyLessThan(negative.delta_rmse_zoh_m(1), 0);
             testCase.verifyGreaterThanOrEqual(negative.relative_delta_rmse_zoh(1), 0);
         end
 
         function testEmptyConvergenceArtifactIsNotAvailable(testCase)
             input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
-                issue9AnalysisTest.fixtureData()));
+                issue9AnalysisTest.convergenceFixtureData()));
             config = teleopdelay.analysis.default_config();
-            data = issue9AnalysisTest.convergenceData(input, ...
+            classification = teleopdelay.analysis.classify(input.aggregate, ...
+                teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio));
+            representatives = teleopdelay.analysis.select_representatives(input, classification, config);
+            data = issue9AnalysisTest.convergenceData(input, representatives, ...
                 teleopdelay.analysis.convergence_table());
             file = issue9AnalysisTest.saveConvergenceData(testCase, data);
             testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
-                "", config, true), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
             testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, "", ...
-                "", config, true), "teleopDelay:AnalysisConvergenceMissing");
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceMissing");
         end
 
         function testInvalidConvergenceCandidatesAreDiagnosed(testCase)
             input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
-                issue9AnalysisTest.fixtureData()));
+                issue9AnalysisTest.convergenceFixtureData()));
             config = teleopdelay.analysis.default_config();
+            classification = teleopdelay.analysis.classify(input.aggregate, ...
+                teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio));
+            representatives = teleopdelay.analysis.select_representatives(input, classification, config);
             root = string(tempname);
             mkdir(root);
             testCase.addTeardown(@() rmdir(root, "s"));
             variants = ["source-sha-mismatch", "refined-step-mismatch", "solver-mismatch", ...
                 "duplicate-case-id", "nonvalidated", "empty-table"];
             for index = 1:numel(variants)
-                data = issue9AnalysisTest.convergenceData(input, ...
-                    issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
+                data = issue9AnalysisTest.convergenceData(input, representatives, ...
+                    issue9AnalysisTest.convergenceFixtureTable(input, representatives, 0.001));
                 data = issue9AnalysisTest.mutateConvergenceData(data, variants(index));
                 issue9AnalysisTest.writeConvergenceDirectory(data, root, "candidate" + string(index));
             end
-            result = teleopdelay.analysis.load_convergence(input, "", root, config);
+            result = teleopdelay.analysis.load_convergence(input, "", root, config, false, representatives);
             testCase.verifyFalse(result.available);
             testCase.verifyEqual(height(result.diagnostics), numel(variants));
             testCase.verifyTrue(all(~result.diagnostics.valid));
@@ -274,37 +280,128 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
 
         function testDifferentValidConvergenceCandidatesAreAmbiguous(testCase)
             input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
-                issue9AnalysisTest.fixtureData()));
+                issue9AnalysisTest.convergenceFixtureData()));
             config = teleopdelay.analysis.default_config();
+            classification = teleopdelay.analysis.classify(input.aggregate, ...
+                teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio));
+            representatives = teleopdelay.analysis.select_representatives(input, classification, config);
             root = string(tempname);
             mkdir(root);
             testCase.addTeardown(@() rmdir(root, "s"));
-            first = issue9AnalysisTest.convergenceData(input, ...
-                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
-            second = issue9AnalysisTest.convergenceData(input, ...
-                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.102));
+            first = issue9AnalysisTest.convergenceData(input, representatives, ...
+                issue9AnalysisTest.convergenceFixtureTable(input, representatives, 0.001));
+            second = issue9AnalysisTest.convergenceData(input, representatives, ...
+                issue9AnalysisTest.convergenceFixtureTable(input, representatives, 0.002));
             issue9AnalysisTest.writeConvergenceDirectory(first, root, "a");
             issue9AnalysisTest.writeConvergenceDirectory(second, root, "b");
-            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, "", root, config), ...
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, "", root, config, false, representatives), ...
                 "teleopDelay:AnalysisConvergenceAmbiguous");
         end
 
         function testSameSemanticConvergenceCandidatesUseDeterministicSelection(testCase)
             input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
-                issue9AnalysisTest.fixtureData()));
+                issue9AnalysisTest.convergenceFixtureData()));
             config = teleopdelay.analysis.default_config();
+            classification = teleopdelay.analysis.classify(input.aggregate, ...
+                teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio));
+            representatives = teleopdelay.analysis.select_representatives(input, classification, config);
             root = string(tempname);
             mkdir(root);
             testCase.addTeardown(@() rmdir(root, "s"));
-            data = issue9AnalysisTest.convergenceData(input, ...
-                issue9AnalysisTest.convergenceFixtureTable(0.1, 0.101));
+            data = issue9AnalysisTest.convergenceData(input, representatives, ...
+                issue9AnalysisTest.convergenceFixtureTable(input, representatives, 0.001));
             issue9AnalysisTest.writeConvergenceDirectory(data, root, "b");
             issue9AnalysisTest.writeConvergenceDirectory(data, root, "a");
-            result = teleopdelay.analysis.load_convergence(input, "", root, config);
+            result = teleopdelay.analysis.load_convergence(input, "", root, config, false, representatives);
             testCase.verifyTrue(result.available);
             testCase.verifyEqual(result.source, "saved-convergence-artifact");
             testCase.verifyEqual(result.diagnostics.selected(1), true);
             testCase.verifyEqual(sum(result.diagnostics.selected), 1);
+        end
+
+        function testRepresentativeConvergenceArtifactIsAccepted(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            result = teleopdelay.analysis.load_convergence(input, file, "", config, true, representatives);
+            plan = teleopdelay.analysis.convergence_plan(input, representatives, config);
+            testCase.verifyTrue(result.available);
+            testCase.verifyEqual(height(result.table), 5);
+            testCase.verifyEqual(sort(string(result.table.case_id)), sort(string(plan.case_ids)));
+        end
+
+        function testOneCaseConvergenceArtifactRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table = data.convergence_artifact.table(1, :);
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testNonRepresentativeConvergenceCaseRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.case_id(1) = "case3";
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testRoleMappingMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.role_mapping(1) = "nearest_boundary";
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testConvergenceConditionMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.omega_rad_s(1) = ...
+                data.convergence_artifact.table.omega_rad_s(1) + 0.1;
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testConvergenceBasePerformanceRatioMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.base_performance_ratio(1) = ...
+                data.convergence_artifact.table.base_performance_ratio(1) + 0.01;
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testConvergenceBaseRmseMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.base_rmse_zoh_m(1) = ...
+                data.convergence_artifact.table.base_rmse_zoh_m(1) + 0.01;
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testConvergenceBaseMaxErrorMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.table.base_max_error_cv_m(1) = ...
+                data.convergence_artifact.table.base_max_error_cv_m(1) + 0.01;
+            data.convergence = data.convergence_artifact.table;
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
+        end
+
+        function testConvergenceMetadataMismatchRejected(testCase)
+            [input, config, representatives, data] = issue9AnalysisTest.convergenceArtifactFixture(testCase);
+            data.convergence_artifact.metadata.solver = "ode45";
+            file = issue9AnalysisTest.saveConvergenceData(testCase, data);
+            testCase.verifyError(@() teleopdelay.analysis.load_convergence(input, file, ...
+                "", config, true, representatives), "teleopDelay:AnalysisConvergenceSchemaMismatch");
         end
 
         function testRenderOnlyDeterminismWithoutSimulation(testCase)
@@ -534,13 +631,93 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                 "duration_s", double(config.simulation.duration));
         end
 
-        function tableValue = convergenceFixtureTable(base, refined)
+        function [input, config, representatives, data] = convergenceArtifactFixture(testCase)
+            input = teleopdelay.analysis.load_input(issue9AnalysisTest.saveData(testCase, ...
+                issue9AnalysisTest.convergenceFixtureData()));
+            config = teleopdelay.analysis.default_config();
+            classification = teleopdelay.analysis.classify(input.aggregate, ...
+                teleopdelay.analysis.machine_tolerance(input.aggregate.performance_ratio));
+            representatives = teleopdelay.analysis.select_representatives(input, classification, config);
+            tableValue = issue9AnalysisTest.convergenceFixtureTable(input, representatives, 0.001);
+            data = issue9AnalysisTest.convergenceData(input, representatives, tableValue);
+        end
+
+        function data = convergenceFixtureData()
+            data = issue9AnalysisTest.fixtureData();
+            ratios = [0.500; 0.501; 0.502; 0.503; 0.504; 0.505; 0.506; 0.507; ...
+                0.508; 0.509; 0.510; 0.511; 0.512; 0.513; 0.514; 0.515; ...
+                0.516; 0.517; 0.518; 1.200; 0.520; 0.521; 0.522; 0.523; ...
+                0.524; 0.525; 0.526; 0.527; 0.528; 0.529; 0.530; 0.531; ...
+                0.532; 0.533; 0.534; 0.535; 0.536; 0.537; 0.990; 1.300].';
+            for index = 1:numel(ratios)
+                zoh = data.cases{index}.simulation.zoh_position_xy_m - ...
+                    data.cases{index}.simulation.reference_position_xy_m;
+                cv = ratios(index) * data.cases{index}.simulation.zoh_position_xy_m;
+                data.cases{index}.simulation.cv_position_xy_m = cv;
+                cvError = cv - data.cases{index}.simulation.reference_position_xy_m;
+                rmseZoh = sqrt(mean(sum(zoh.^2, 2)));
+                rmseCv = sqrt(mean(sum(cvError.^2, 2)));
+                maxZoh = max(vecnorm(zoh, 2, 2));
+                maxCv = max(vecnorm(cvError, 2, 2));
+                data.aggregate.rmse_cv_m(index) = rmseCv;
+                data.aggregate.nrmse_cv(index) = rmseCv;
+                data.aggregate.max_error_cv_m(index) = maxCv;
+                data.aggregate.performance_ratio(index) = rmseCv / rmseZoh;
+                data.aggregate.improvement_percent(index) = (1 - rmseCv / rmseZoh) * 100;
+                data.cases{index}.evaluation.rmse_cv_m = rmseCv;
+                data.cases{index}.evaluation.nrmse_cv = rmseCv;
+                data.cases{index}.evaluation.max_error_cv_m = maxCv;
+                data.cases{index}.evaluation.performance_ratio = rmseCv / rmseZoh;
+                data.cases{index}.evaluation.improvement_percent = ...
+                    (1 - rmseCv / rmseZoh) * 100;
+            end
+        end
+
+        function tableValue = convergenceMetricFixtureTable(base, refined)
             delta = refined - base;
             denominator = max(abs(base), 64 * eps(max([1, abs(base), abs(refined)])));
             relative = abs(delta) / denominator;
             rows = {"best", "best", "circle", "case1", 1, 0, 0.005, 0.0025, 0.02, ...
                 base, refined, base, refined, 1, 1, delta, delta, 0, relative, relative, 0, ...
                 base, refined, base, refined, delta, delta, relative, relative, 8, true, "validated"};
+            tableValue = teleopdelay.analysis.convergence_table(rows);
+        end
+
+        function tableValue = convergenceFixtureTable(input, representatives, delta)
+            config = teleopdelay.analysis.default_config();
+            plan = teleopdelay.analysis.convergence_plan(input, representatives, config);
+            rows = cell(plan.case_count, 32);
+            for index = 1:plan.case_count
+                expected = plan.table(index, :);
+                baseG = expected.base_performance_ratio;
+                refinedG = baseG + delta;
+                baseZoh = expected.base_rmse_zoh_m;
+                baseCv = expected.base_rmse_cv_m;
+                baseMaxZoh = expected.base_max_error_zoh_m;
+                baseMaxCv = expected.base_max_error_cv_m;
+                refinedZoh = baseZoh + delta;
+                refinedCv = baseCv + delta;
+                refinedMaxZoh = baseMaxZoh + delta;
+                refinedMaxCv = baseMaxCv + delta;
+                relativeZoh = abs(refinedZoh - baseZoh) / max(abs(baseZoh), ...
+                    64 * eps(max([1, abs(baseZoh), abs(refinedZoh)])));
+                relativeCv = abs(refinedCv - baseCv) / max(abs(baseCv), ...
+                    64 * eps(max([1, abs(baseCv), abs(refinedCv)])));
+                relativeG = abs(refinedG - baseG) / max(abs(baseG), ...
+                    64 * eps(max([1, abs(baseG), abs(refinedG)])));
+                relativeMaxZoh = abs(refinedMaxZoh - baseMaxZoh) / max(abs(baseMaxZoh), ...
+                    64 * eps(max([1, abs(baseMaxZoh), abs(refinedMaxZoh)])));
+                relativeMaxCv = abs(refinedMaxCv - baseMaxCv) / max(abs(baseMaxCv), ...
+                    64 * eps(max([1, abs(baseMaxCv), abs(refinedMaxCv)])));
+                rows(index, :) = {expected.primary_role, expected.role_mapping, ...
+                    expected.trajectory, expected.case_id, expected.omega_rad_s, ...
+                    expected.delay_s, 0.005, 0.0025, 0.02, baseZoh, refinedZoh, ...
+                    baseCv, refinedCv, baseG, refinedG, refinedZoh - baseZoh, ...
+                    refinedCv - baseCv, refinedG - baseG, relativeZoh, relativeCv, ...
+                    relativeG, baseMaxZoh, refinedMaxZoh, baseMaxCv, refinedMaxCv, ...
+                    refinedMaxZoh - baseMaxZoh, refinedMaxCv - baseMaxCv, ...
+                    relativeMaxZoh, relativeMaxCv, 8, true, "validated"};
+            end
             tableValue = teleopdelay.analysis.convergence_table(rows);
         end
 
@@ -575,7 +752,7 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
             end
         end
 
-        function data = convergenceData(input, tableValue)
+        function data = convergenceData(input, ~, tableValue)
             config = teleopdelay.analysis.default_config();
             caseIds = string(tableValue.case_id);
             convergenceMetadata = struct( ...
@@ -588,9 +765,12 @@ classdef issue9AnalysisTest < matlab.unittest.TestCase
                 "refined_fixed_step_s", config.convergence.refined_fixed_step_s, ...
                 "sample_period_s", config.convergence.sample_period_s, ...
                 "alignment_ratio", 8, "alignment_valid", true, ...
-                "convergence_case_ids", caseIds);
+                "convergence_case_ids", caseIds, ...
+                "role_mapping", string(tableValue.role_mapping), ...
+                "primary_roles", string(tableValue.role));
             metadata = struct("source_mat_sha256", string(input.source_mat_sha256), ...
-                "analysis_schema_version", string(config.analysis_schema_version));
+                "analysis_schema_version", string(config.analysis_schema_version), ...
+                "convergence_metadata", convergenceMetadata);
             data = struct( ...
                 "analysis_schema_version", string(config.analysis_schema_version), ...
                 "convergence_schema_version", string(config.convergence.schema_version), ...

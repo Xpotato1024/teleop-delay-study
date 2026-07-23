@@ -178,3 +178,8 @@
 - 判断: InputMatはmanifest/cases/aggregateの条件、時系列shape・alignment、evaluation mask、packet validity、metric・無次元量再計算までmachine-precision由来で照合する。relative deltaは`abs(refined-base)/max(abs(base), scaleAwareFloor)`とする。
 - 判断: MAT自身のself hashはmetadata.output_filesから除外し、最終MATを含む全fileを`artifact_manifest.csv`へsidecar記録する。event acceleration percentileはconfigから描画・選定理由・axes contractへ共有する。
 - 検証: Issue #9 focused suiteは保存figureを実際に2回生成するdeterminismを含め、入力negative、収束候補、sidecar hash、relative delta、percentileを確認する。標準40 caseは再simulationしない。
+## 2026-07-23: Issue #9 収束artifact結合P1修正
+
+- 判断: convergence artifactはartifact自身のcase集合だけでは十分とせず、machine-precision分類から同じ`convergence_plan`を再構成して照合する。期待unique case ID集合、row数、role mapping、primary role、入力case条件、base metrics、`convergence_case_ids`、artifact/top-level metadata一致を必須とした。
+- 実装: `run_convergence`と`load_convergence`の代表study planを`src/+teleopdelay/+analysis/convergence_plan.m`へ集約した。explicit不一致はstable schema mismatch、自動探索不一致はdiagnosticへ残してavailable候補から除外する。
+- 検証: representative artifact受理、1 case subset、代表外case、role mapping、condition、base G/RMSE/max error、metadata不一致のnegative fixtureを追加し、Issue #9 focused testsは40/40通過した。

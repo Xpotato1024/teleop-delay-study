@@ -67,3 +67,6 @@ CSV/MAT tableは`case_classification`、`extreme_cases`、`nearest_boundary_case
 dimensionless、代表case、boundary、figure 7/8のsource tableは`case_id` joinで構築し、入力aggregateのrow permutationに依存しないことをfixtureで確認した。InputMat validatorはmanifest 40要素、top-level/metadata ID、全condition、trajectory/simulation time alignment、evaluation mask、packet validity、再計算metric・無次元量をfail-closedに検証する。
 
 収束artifactは空tableを保存済み結果と呼ばず、候補ごとの拒否理由をdiagnosticへ記録する。有効候補のsemantic contentが異なる場合はstable ambiguity error、同一内容ならcanonical path順で選択する。relative deltaは真の相対差であり、`analysis_tables.mat`のself hashはmetadataから除外して`artifact_manifest.csv`へ最終MATを記録する。event acceleration percentileはconfig値をselection、caption、axes contractで共有する。
+## 2026-07-23: 収束artifact結合P1修正
+
+`run_convergence`と`load_convergence`の代表case選定を`convergence_plan`へ集約しました。render-onlyはmachine-precision分類から再計算した期待planと、保存artifactのunique case ID集合、row数、role mapping、primary role、trajectory、omega、delay、base fixed step、sample period、base RMSE/G/max error、`convergence_case_ids`、metadataをcase単位で照合します。subset、代表外case、role・condition・base metric・metadata改変は`teleopDelay:AnalysisConvergenceSchemaMismatch`で拒否し、自動探索候補には理由を残します。full/render-onlyの標準40 case分類、boundary tolerance、7 boundary rowsは同一です。

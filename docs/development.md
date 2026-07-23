@@ -281,3 +281,4 @@ matlab -batch "addpath('src'); results=runtests('tests/unit/issue9AnalysisTest.m
 matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','render-only'); assert(result.artifact.saved)"
 matlab -batch "result=run_issue9_analysis('InputMat','C:/absolute/path/to/issue8__results.mat','Mode','full'); assert(result.artifact.saved)"
 ```
+収束artifactのfocused testでは、正しい5 unique representative case、1 case subset、代表外case、role mapping、condition、base RMSE/G/max error、metadata mismatchを検証します。`run_convergence`と`load_convergence`は共通`convergence_plan`を使い、render-onlyはこのplanと完全一致するartifactだけをboundary toleranceへ使用します。

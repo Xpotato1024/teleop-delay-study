@@ -49,7 +49,7 @@ if mode == "full"
 else
     convergence = teleopdelay.analysis.load_convergence(input, ...
         parser.Results.ConvergenceMat, outputRoot, config, ...
-        ~ismember("ConvergenceMat", parser.UsingDefaults));
+        ~ismember("ConvergenceMat", parser.UsingDefaults), preliminaryRepresentatives);
     convergenceSource = convergence.source;
 end
 

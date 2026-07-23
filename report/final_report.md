@@ -136,3 +136,4 @@ Issue #8のcomplete MATを明示入力として、標準40 caseを再実行せ�
 円軌道の`q≈1.895`は文献値としては扱わず、理想正弦波で`E_CV=E_ZOH`を置いた`q=2 sin(q)`の最初の正の非零解という解析候補として比較する。sampled communication、packet-age変動、plant dynamics、fixed-step error、Lissajousの2周波数成分を無視するため、実測境界との一致を断定しない。`omega*time_constant`と`omega*sample_period`は標準designで独立効果を識別できない可能性をrank/collinearity tableへ記録し、因果寄与や統計的有意差は解釈しない。
 
 入力semantic validation、`case_id` join、収束artifactのstrict validation、sidecar file manifest、保存figureのdeterminismを実装した。通常の`render-only`では40 case simulationを再実行せず、理想正弦波の`q=1.895494267...`は実測境界ではなく解析候補として扱う。詳細な数値表と図は生成artifactおよび`docs/reports/issue-9-boundary-analysis.md`を正本とする。
+収束studyの再利用は、入力40 caseから再計算した決定論的代表planと保存artifactのcase ID・role mapping・base metrics・metadataが一致する場合に限定する。これにより、過去runのsubsetや異なる代表選定をrender-onlyのboundary toleranceへ混入させない。
