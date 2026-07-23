@@ -38,7 +38,7 @@ end
 function convergence = try_load(file, input, config) %#ok<INUSD>
 convergence = empty_convergence("invalid");
 try
-    data = load(file, "convergence", "metadata", "convergence_metadata");
+    data = load(file);
 catch
     return;
 end
