@@ -9,7 +9,7 @@
 - build command: `& .\report\latex\build.ps1`
 - template path: `C:\Users\miyut\Desktop\Xpotato-Apps\（参考）LaTeXテンプレート\template`
 - build date/time: 2026-07-24 05:14:40 +09:00
-- source commit SHA: `c8890804bc27fcc9a0de685e23024d4e39c6d644`（最終レイアウト修正の親コミット）
+- source commit SHA: `05b6e7e`（最終レイアウト修正・PDF・監査記録）
 
 ## 使用図ファイル
 
