@@ -31,6 +31,21 @@ classdef test_figure_contracts < matlab.unittest.TestCase
                 "teleopDelay:AnalysisBoundaryGridValueMissing");
         end
 
+        function testConditionMapUsesSharedExternalLegendLayout(testCase)
+            contract = teleopdelay.analysis.condition_map_visual_contract();
+            testCase.verifyEqual(contract.legend_location, "southoutside");
+            testCase.verifyEqual(contract.legend_orientation, "horizontal");
+            legendTop = contract.legend_position(2) + contract.legend_position(4);
+            axesBottom = contract.axes_position(2);
+            testCase.verifyGreaterThan(contract.legend_position(2), 0);
+            testCase.verifyLessThan(legendTop, axesBottom);
+            testCase.verifyEqual(contract.legend_position(1), contract.axes_position(1));
+            testCase.verifyEqual(contract.legend_position(3), contract.axes_position(3));
+            testCase.verifyGreaterThan(contract.colorbar_position(1), ...
+                contract.axes_position(1) + contract.axes_position(3));
+            testCase.verifyGreaterThan(contract.axes_position(4), 0.60);
+        end
+
         function testArchitectureContractHasRequiredAndNoForbiddenEdges(testCase)
             contract = teleopdelay.analysis.architecture_contract();
             expected = [

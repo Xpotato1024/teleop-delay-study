@@ -9,43 +9,52 @@ else
     figureText = textContract.figure_06;
 end
 allG = double(classification.performance_ratio);
-fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1050, 750]);
+visual = teleopdelay.analysis.condition_map_visual_contract();
+fig = figure("Visible", "off", "Color", "white", ...
+    "Position", visual.figure_position);
 cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
-imagesc(layout.omega_index, layout.delay_index, layout.map);
-set(gca, "YDir", "normal", "XTick", layout.omega_index, "YTick", layout.delay_index, ...
+ax = axes(fig, "Position", visual.axes_position);
+imagesc(ax, layout.omega_index, layout.delay_index, layout.map);
+set(ax, "YDir", "normal", "XTick", layout.omega_index, "YTick", layout.delay_index, ...
     "XTickLabel", compose("%.3g", layout.omegas), ...
     "YTickLabel", compose("%.3g", layout.delays), "Layer", "top");
-hold on;
+hold(ax, "on");
 colormap(fig, parula(256));
 colorLimits = [min(allG), max(allG)];
 if colorLimits(1) == colorLimits(2)
     colorLimits = colorLimits + [-1, 1] * max(1e-12, abs(colorLimits(1)) * 1e-6);
 end
-clim(colorLimits);
-colorbarHandle = colorbar;
+clim(ax, colorLimits);
+colorbarHandle = colorbar(ax);
+colorbarHandle.Units = "normalized";
+colorbarHandle.Position = visual.colorbar_position;
 colorbarHandle.Label.String = "性能比 G = RMSE_CV / RMSE_ZOH";
 colorbarHandle.Label.Interpreter = "none";
-xlabel("角周波数 ω [rad/s]", "Interpreter", "none");
-ylabel("通信遅延 L [s]", "Interpreter", "none");
-title(figureText.title, "Interpreter", "none");
-xlim([0.5, numel(layout.omega_index) + 0.5]);
-ylim([0.5, numel(layout.delay_index) + 0.5]);
-grid on;
+xlabel(ax, "角周波数 ω [rad/s]", "Interpreter", "none");
+ylabel(ax, "通信遅延 L [s]", "Interpreter", "none");
+title(ax, figureText.title, "Interpreter", "none");
+xlim(ax, [0.5, numel(layout.omega_index) + 0.5]);
+ylim(ax, [0.5, numel(layout.delay_index) + 0.5]);
+grid(ax, "on");
 for rowIndex = 1:numel(layout.delay_index)
     for columnIndex = 1:numel(layout.omega_index)
-        text(layout.omega_index(columnIndex), layout.delay_index(rowIndex), ...
+        text(ax, layout.omega_index(columnIndex), layout.delay_index(rowIndex), ...
             sprintf("%.3f", layout.map(rowIndex, columnIndex)), ...
             "HorizontalAlignment", "center", "FontSize", 10, ...
             "Color", "k", "Interpreter", "none");
     end
 end
 for index = 1:numel(layout.markers)
-    plot(layout.markers(index).x, layout.markers(index).y, "kx", ...
+    plot(ax, layout.markers(index).x, layout.markers(index).y, "kx", ...
         "LineWidth", 1.5, "MarkerSize", 8, "HandleVisibility", "off");
 end
-plot(nan, nan, "kx", "LineWidth", 1.5, "MarkerSize", 8, ...
+plot(ax, nan, nan, "kx", "LineWidth", 1.5, "MarkerSize", 8, ...
     "DisplayName", "G=1を挟む隣接条件");
-legend("Location", "best", "Interpreter", "none");
+legendHandle = legend(ax, "Location", visual.legend_location, ...
+    "Orientation", visual.legend_orientation, "Interpreter", "none");
+legendHandle.Units = "normalized";
+legendHandle.Location = "none";
+legendHandle.Position = visual.legend_position;
 fontName = teleopdelay.analysis.style_figure(fig);
 metadata = struct( ...
     "trajectory", trajectory, ...
