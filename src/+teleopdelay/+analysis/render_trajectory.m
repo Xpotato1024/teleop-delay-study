@@ -6,7 +6,8 @@ roles = analysis.tables.representative_cases( ...
     (analysis.tables.representative_cases.role == "best_improvement" | ...
      startsWith(analysis.tables.representative_cases.role, "worst_degradation") | ...
      analysis.tables.representative_cases.role == "nearest_boundary"), :);
-orderedRoles = ["best_improvement", "worst_degradation", "worst_degradation_fallback", "nearest_boundary"];
+orderedRoles = ["best_improvement", "worst_degradation", ...
+    "worst_degradation_fallback", "nearest_boundary"];
 selected = strings(0, 1);
 selectedRoles = strings(0, 1);
 for role = orderedRoles
@@ -17,7 +18,14 @@ for role = orderedRoles
     end
 end
 if isempty(selected)
-    error("teleopDelay:AnalysisFigureDataMissing", "No representative path case was selected for %s.", trajectory);
+    error("teleopDelay:AnalysisFigureDataMissing", ...
+        "No representative path case was selected for %s.", trajectory);
+end
+textContract = teleopdelay.analysis.figure_text_contract();
+if string(trajectory) == "circle"
+    figureText = textContract.figure_02;
+else
+    figureText = textContract.figure_03;
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1400, 650]);
 cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
@@ -34,35 +42,53 @@ for index = 1:numel(selected)
     nexttile(layout);
     caseResult = teleopdelay.analysis.case_by_id(input, selected(index));
     reference = caseResult.simulation.reference_position_xy_m;
-    plot(reference(:, 1), reference(:, 2), "k--", "LineWidth", 1.4); hold on;
+    plot(reference(:, 1), reference(:, 2), "k--", "LineWidth", 1.4, ...
+        "DisplayName", "遅延なし参照");
+    hold on;
     plot(caseResult.simulation.zoh_position_xy_m(:, 1), caseResult.simulation.zoh_position_xy_m(:, 2), ...
-        "Color", [0.85, 0.20, 0.15], "LineWidth", 1.1);
+        "Color", [0.85, 0.20, 0.15], "LineWidth", 1.1, "DisplayName", "ZOH");
     plot(caseResult.simulation.cv_position_xy_m(:, 1), caseResult.simulation.cv_position_xy_m(:, 2), ...
-        "Color", [0.05, 0.30, 0.80], "LineWidth", 1.1);
+        "Color", [0.05, 0.30, 0.80], "LineWidth", 1.1, "DisplayName", "CV");
     plot(reference(1, 1), reference(1, 2), "o", "MarkerFaceColor", [0.1, 0.6, 0.2], ...
-        "MarkerEdgeColor", "none", "MarkerSize", 7);
+        "MarkerEdgeColor", "none", "MarkerSize", 7, "DisplayName", "開始点");
     plot(reference(end, 1), reference(end, 2), "s", "MarkerFaceColor", [0.9, 0.5, 0.0], ...
-        "MarkerEdgeColor", "none", "MarkerSize", 6);
-    axis equal; xlim(limits([1, 3]) + [-margin, margin]); ylim(limits([2, 4]) + [-margin, margin]);
-    grid on; xlabel("x [m]"); ylabel("y [m]");
+        "MarkerEdgeColor", "none", "MarkerSize", 6, "DisplayName", "終了点");
+    axis equal;
+    xlim(limits([1, 3]) + [-margin, margin]);
+    ylim(limits([2, 4]) + [-margin, margin]);
+    grid on;
+    xlabel("x位置 [m]", "Interpreter", "none");
+    ylabel("y位置 [m]", "Interpreter", "none");
     row = analysis.tables.case_classification( ...
         analysis.tables.case_classification.case_id == selected(index), :);
-    title(sprintf("%s\nG=%.4g, delay=%.2g s, omega=%.2g rad/s", ...
-        strrep(selectedRoles(index), "_", " "), row.performance_ratio, ...
-        row.delay_s, row.omega_rad_s), "Interpreter", "tex");
+    title(sprintf("%s%sG=%.4g, L=%.3g s, ω=%.3g rad/s", ...
+        role_label(selectedRoles(index)), newline, row.performance_ratio, ...
+        row.delay_s, row.omega_rad_s), "Interpreter", "none");
     if index == 1
-        legend("reference", "ZOH", "CV", "start", "end", "Location", "best");
+        legend("Location", "best", "Interpreter", "none");
     end
 end
-superTitle = sgtitle(layout, string(trajectory) + " representative trajectories");
+superTitle = sgtitle(layout, figureText.title);
 superTitle.Color = [0.05, 0.05, 0.05];
-teleopdelay.analysis.style_figure(fig);
-caption = "Reference, ZOH, and CV plant paths for automatically selected " + ...
-    string(trajectory) + " cases; green circle=start and orange square=end.";
-entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
-    "trajectory", trajectory, "case_ids", strjoin(selected, "|"), "caption", caption, ...
-    "metric", "reference/ZOH/CV trajectory position", ...
-    "axes_contract", "x [m], y [m], equal aspect ratio, start/end markers"), config.figure_dpi);
+fontName = teleopdelay.analysis.style_figure(fig);
+metadata = struct( ...
+    "trajectory", trajectory, "case_ids", strjoin(selected, "|"), ...
+    "caption", figureText.caption, "metric", figureText.metric, ...
+    "axes_contract", figureText.axes_contract, "font_name", fontName);
+entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, metadata, config.figure_dpi);
 teleopdelay.analysis.close_figure(fig);
 clear cleanup;
+end
+
+function label = role_label(role)
+switch string(role)
+    case "best_improvement"
+        label = "最大改善";
+    case {"worst_degradation", "worst_degradation_fallback"}
+        label = "最大悪化";
+    case "nearest_boundary"
+        label = "境界最近傍";
+    otherwise
+        error("teleopDelay:AnalysisFigureRoleInvalid", "Unknown representative role: %s", role);
+end
 end

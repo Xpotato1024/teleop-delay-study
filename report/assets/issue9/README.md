@@ -1,19 +1,22 @@
 # Issue #9 最終図表監査snapshot
 
-このdirectoryは、Issue #9で確定したfinal full artifactを内容変更せずに固定した、Issue #10 Phase Aの監査用snapshotです。
+このdirectoryは、Issue #8の保存済み40 case結果からIssue #9相当の図表をrender-onlyで再生成し、Issue #10 Phase Aの監査用に固定したsnapshotです。
 
 ## 正本と入力identity
 
 | 項目 | 値 |
 |---|---|
-| source artifact | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T120651252Z__3cc0b6b` |
-| source commit | `3cc0b6bc383b6f614030011147f44e1849b76b3a` |
+| source artifact | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T143927921Z__7e0eee9` |
+| source commit | `7e0eee925123c890d157caf5aa9529a9487a5159` |
 | experiment ID | `i8v1_n40_2353bb12` |
 | input run ID | `20260723T013408166Z__0b95b1a` |
 | input MAT SHA-256 | `E21B8B7486C89010A390CBF52BFF6286E6B217A5D911544D5102E39D87CDDEC8` |
-| artifact manifest SHA-256 | `FEDA8738168F53AF38E606173AA5A1DA5F4DD8AD552DD0C42385B1C8F0F51CB6` |
+| convergence artifact | `results/generated/analysis/i8v1_n40_2353bb12/i9v1_i8v1_n40_2353bb12_A3E247DF0482/20260723T120651252Z__3cc0b6b/analysis_tables.mat` |
+| convergence artifact SHA-256 | `157D22F59D10CA1F3972FFF7F5B5E7BAF8FFBCFE1909E5750891631F89D027F2` |
+| artifact manifest SHA-256 | `A80447AE60179D87C4066EB2E85B4417AECFF06EA302447C1BEF4C042994CE90` |
+| 日本語font | `Noto Sans JP` |
 
-標準40 case simulationは、このsnapshot作成時には再実行していません。入力MATおよび`analysis_tables.mat`は追跡対象へ複製していません。
+標準40 case simulationとconvergenceは再実行していません。入力MAT、`analysis_tables.mat`、`results/generated`は追跡対象へ複製していません。convergence artifactはpathを明示したstrict render-only入力です。
 
 ## Figures
 
@@ -26,7 +29,7 @@
 7. `figure_07_performance_vs_omega_delay`
 8. `figure_08_performance_vs_omega_mean_packet_age`
 
-各figureについて、`figures/`にPNGとvector PDFを1 fileずつ保存しています。監査対象とsource case IDは[`audit/figure-review-index.md`](audit/figure-review-index.md)を参照してください。
+各figureについて、`figures/`にPNGとvector PDFを1 fileずつ保存しています。タイトル、軸名、凡例、注記、図題は日本語へ統一し、監査対象とsource case IDは[図監査index](audit/figure-review-index.md)を参照してください。ChatGPT review statusは全件`pending`です。
 
 ## Tables
 
@@ -44,25 +47,18 @@
 
 ## 生成command
 
-source artifactは、repository rootから次のfull mode相当のcommandで生成されました。`InputMat`はrepository-relative pathで明示します。
+source artifactはrepository rootから、入力MATと保存済みconvergence artifactを明示して次のrender-only commandで生成しました。
 
 ```powershell
-matlab -batch "inputMat=fullfile(pwd,'results','generated','i8v1_n40_2353bb12','20260723T013408166Z__0b95b1a','i8v1_n40_2353bb12__results.mat'); result=run_issue9_analysis('InputMat',inputMat,'Mode','full'); assert(result.artifact.saved)"
+matlab -batch "inputMat=fullfile(pwd,'results','generated','i8v1_n40_2353bb12','20260723T013408166Z__0b95b1a','i8v1_n40_2353bb12__results.mat'); convergenceMat=fullfile(pwd,'results','generated','analysis','i8v1_n40_2353bb12','i9v1_i8v1_n40_2353bb12_A3E247DF0482','20260723T120651252Z__3cc0b6b','analysis_tables.mat'); result=run_issue9_analysis('InputMat',inputMat,'Mode','render-only','ConvergenceMat',convergenceMat,'OutputRoot','results/generated'); assert(result.artifact.saved)"
 ```
 
-このcommandはsnapshot作成時には再実行していません。
+このcommandはsimulationまたはconvergenceを起動しません。
 
 ## Copyおよび再生成contract
 
-PNG、PDF、CSVはsource artifactからbyte-for-byteでcopyし、source/destinationのsizeとSHA-256が全fileで一致することを確認しています。cropping、compression、metadata書換え、PDF再出力、手動修正は行っていません。
+PNG、PDF、CSVはsource artifactからbyte-for-byteでcopyしました。source/destinationのsizeとSHA-256はcopy対象27 fileで一致しています。cropping、compression、metadata書換え、PDF再出力、手動修正は行っていません。
 
 図の修正が必要な場合は画像を直接編集せずrendererを修正し、Issue #9相当の生成処理から再生成します。
 
-`audit/tracked_file_manifest.csv`は自己参照しません。同manifestは自身以外のsnapshot fileを記録します。
-
-## 解釈上の注意
-
-- `q≈1.895`は文献値や実測境界ではなく、理想正弦波から導出した解析候補です。
-- boundaryは離散gridで隣接するcaseのpairであり、補間境界ではありません。
-- `omega*delay`と`omega*mean_packet_age`は異なる量です。
-- Lissajous軌道は1:2周波数成分と方向変化を含むため、単一正弦波へ還元した断定は行いません。
+`audit/tracked_file_manifest.csv`は自己参照せず、同manifest以外のsnapshot fileを記録します。

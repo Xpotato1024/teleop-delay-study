@@ -1,6 +1,11 @@
 function entry = save_figure(fig, figuresDirectory, figureId, metadata, dpi)
 % save_figure  Export one headless report figure in PNG and vector PDF form.
 
+fontName = teleopdelay.analysis.style_figure(fig);
+if ~isfield(metadata, "font_name")
+    metadata.font_name = fontName;
+end
+
 pngName = string(figureId) + ".png";
 pdfName = string(figureId) + ".pdf";
 pngPath = fullfile(figuresDirectory, pngName);
@@ -26,6 +31,7 @@ entry = struct( ...
     "caption", string(metadata.caption), ...
     "metric", string(metadata.metric), ...
     "axes_contract", string(metadata.axes_contract), ...
+    "font_name", string(metadata.font_name), ...
     "vector_pdf", true, ...
     "dpi", double(dpi));
 end
