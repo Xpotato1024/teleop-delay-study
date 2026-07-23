@@ -42,7 +42,8 @@ for panel = 1:2
     grid on; xlabel(xLabel); ylabel("performance ratio G"); title(trajectory, "Interpreter", "none");
     legend("Location", "best");
 end
-sgtitle(layout, "Dimensionless organization: " + metricName + " (theory lines are ideal candidates only)");
+superTitle = sgtitle(layout, "Dimensionless organization: " + metricName + " (theory lines are ideal candidates only)");
+superTitle.Color = [0.05, 0.05, 0.05];
 teleopdelay.analysis.style_figure(fig);
 caption = "G against " + xLabel + " for circle and 1:2 Lissajous. The ideal sinusoid candidate is a comparison line, not an empirical boundary.";
 entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...

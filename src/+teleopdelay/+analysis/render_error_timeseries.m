@@ -32,9 +32,9 @@ plot(t, acceleration, "Color", [0.20, 0.40, 0.20], "LineWidth", 1.1); hold on;
 yline(threshold, "k--", compose("%.17gth percentile threshold", config.event_acceleration_percentile));
 scatter(t(events), acceleration(events), 10, "k", "filled");
 grid on; xlabel("time [s]"); ylabel("acceleration magnitude [m/s^2]");
-title(sprintf("direction-change diagnostic: %s, G=%.4g", row.case_id(1), classificationRow.performance_ratio(1)), ...
-    "Interpreter", "none");
-sgtitle(layout, "Events mark temporal coincidence only; no causal claim is made.");
+title(sprintf("direction-change diagnostic: selected case, G=%.4g", classificationRow.performance_ratio(1)));
+superTitle = sgtitle(layout, "Events mark temporal coincidence only; no causal claim is made.");
+superTitle.Color = [0.05, 0.05, 0.05];
 teleopdelay.analysis.style_figure(fig);
 caption = "Lissajous ZOH/CV error norms with deterministic acceleration threshold marks for the selected direction-change case.";
 entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, ...

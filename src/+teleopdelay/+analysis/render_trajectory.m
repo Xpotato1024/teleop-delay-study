@@ -54,7 +54,8 @@ for index = 1:numel(selected)
         legend("reference", "ZOH", "CV", "start", "end", "Location", "best");
     end
 end
-sgtitle(layout, string(trajectory) + " representative trajectories");
+superTitle = sgtitle(layout, string(trajectory) + " representative trajectories");
+superTitle.Color = [0.05, 0.05, 0.05];
 teleopdelay.analysis.style_figure(fig);
 caption = "Reference, ZOH, and CV plant paths for automatically selected " + ...
     string(trajectory) + " cases; green circle=start and orange square=end.";

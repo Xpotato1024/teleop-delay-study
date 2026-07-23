@@ -19,12 +19,6 @@ colormap(fig, parula(256)); clim([min(allG), max(allG)]); colorbar;
 xlabel("omega [rad/s]"); ylabel("delay [s]");
 title(string(trajectory) + " discrete performance ratio map G=RMSE_{CV}/RMSE_{ZOH}");
 grid on; set(gca, "Layer", "top", "XTick", omegas, "YTick", delays);
-for rowIndex = 1:numel(delays)
-    for columnIndex = 1:numel(omegas)
-        text(omegas(columnIndex), delays(rowIndex), sprintf("%.3f", map(rowIndex, columnIndex)), ...
-            "HorizontalAlignment", "center", "FontSize", 10, "Color", "k");
-    end
-end
 selectedBrackets = brackets(brackets.trajectory == trajectory & brackets.bracket_type ~= "nearest-G-pair", :);
 for index = 1:height(selectedBrackets)
     lowerX = selectedBrackets.lower_omega_rad_s(index);
@@ -32,6 +26,12 @@ for index = 1:height(selectedBrackets)
     upperX = selectedBrackets.upper_omega_rad_s(index);
     upperY = selectedBrackets.upper_delay_s(index);
     plot([lowerX, upperX], [lowerY, upperY], "kx", "LineWidth", 1.7, "MarkerSize", 10);
+end
+for rowIndex = 1:numel(delays)
+    for columnIndex = 1:numel(omegas)
+        text(omegas(columnIndex), delays(rowIndex), sprintf("%.3f", map(rowIndex, columnIndex)), ...
+            "HorizontalAlignment", "center", "FontSize", 10, "Color", "k");
+    end
 end
 plot(nan, nan, "kx", "LineWidth", 1.7, "MarkerSize", 10);
 legend("G=1 adjacent bracket cells", "Location", "best");
