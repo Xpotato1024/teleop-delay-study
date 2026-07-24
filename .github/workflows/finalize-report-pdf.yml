@@ -68,12 +68,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           log=report/latex/.generated/final_report.log
-          excerpt=$(grep -nE '(^!|LaTeX Error|Package .* Error|fontspec error|not found|Emergency stop|Fatal error|Undefined control sequence)' "$log" 2>/dev/null | tail -n 30 || true)
-          if [ -z "$excerpt" ]; then
-            excerpt=$(tail -n 40 "$log" 2>/dev/null || true)
-          fi
+          excerpt=$(tail -n 35 "$log" 2>/dev/null || true)
           {
-            echo '### Final report build failure — compact diagnostics'
+            echo '### Final report build failure — log tail'
             echo
             echo '```text'
             printf '%s\n' "$excerpt"
