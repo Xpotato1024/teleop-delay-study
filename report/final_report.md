@@ -1,139 +1,553 @@
+# 2026年度 シミュレーション工学・演習 最終課題
+
 # 遠隔操作ロボットの通信遅延に対する定速度予測補償の有効範囲
 
-<!-- 学年・組・番号・氏名は提出版で記入する。 -->
+## ―一次遅れ・純遅延モデルを用いた軌道追従解析―
+
+学年＿＿＿　組＿＿＿　番号＿＿＿＿＿＿　氏名＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
 
 ## 1. シミュレーションの目的
 
-<!--
-- 遠隔位置指令に通信遅延が生じる背景
-- この対象を選んだ理由
-- 定速度予測自体を新規技術とは主張しない
-- 明らかにする有効範囲と悪化条件
-- 人間入力を使わず再現可能な軌道を使う理由
--->
+遠隔操作ロボットでは、操作者が生成した指令を通信回線を介してロボットへ送るため、指令が生成されてから利用可能になるまでに通信遅延が生じる。さらに、指令を一定周期で送信する場合、受信側が使用する最新指令はサンプル間でも古くなる。古い位置指令をそのまま保持するゼロ次ホールド（Zero-Order Hold、以下ZOH）は実装が容易である一方、目標運動が速いほど位置の遅れが大きくなる。
 
-## 2. 遠隔位置指令系のモデル化
+通信遅延が遠隔操作性能を低下させることは古くから報告されており、Sheridanらは伝送遅延を含む遠隔マニピュレーションで作業時間が増加することを示した[1]。遅延の影響を軽減する方法として、実ロボットより先に動く仮想ロボットを表示する予測表示[2]、遠隔側の詳細な動力学モデルを必須としない予測器フレームワーク[3,4]、操作者の意図軌道を予測して車両を誘導する方式[5]などが研究されている。
 
-### 2.1 対象システムと入出力
+本課題では、複雑な予測器や人間操作者を含む実験に進む前の基礎検討として、最後に受信した位置と速度から現在位置を一次外挿する定速度予測（Constant Velocity、以下CV）を扱う。CVは、受信した運動状態から位置を推定する単純なデッドレコニングであり、予測表示[2]、Zhengらの予測器フレームワーク[3,4]、予測軌道誘導制御[5]と同一の方式ではない。
 
-入力は2次元連続目標位置と解析速度である。通信Model Referenceは固定sampling、固定遅延、最新packet選択を担当し、同じpacketからZOH/CV commandを生成する。top-level modelはZOH/CV/referenceの3つの`first_order_2d.slx`を呼び出し、referenceには連続目標位置を直接入力する。公開simulation schemaは8つの名前付きDataset elementと`time_s`、solver、fixed stepで構成する。
+この対象を選んだ理由は、通信遅延が遠隔操作ロボットの基本的な性能制約であり、単純な予測補償でも有効条件と失敗条件の双方を数値的に検討できるためである。本シミュレーションの目的は、通信遅延、目標軌道の角周波数および軌道形状を変化させ、CVがZOHより追従誤差を低減する条件と、定速度仮定の破綻によって逆に悪化する条件を明らかにすることである。特に、遅延時間を軌道の時間スケールで無次元化し、改善から悪化へ移る範囲を整理する。
 
-### 2.2 目標軌道
+## 2. 関連研究
 
-<!--
-- 円軌道
-- 1:2 Lissajous軌道
-- 必要なら最小ジャーク通過点軌道
-- 位置、速度、加速度の式
--->
+Sheridanら[1]は、遠隔マニピュレータを用いた単純作業に伝送遅延を導入し、遅延が人間の操作時間へ与える影響を調べた。この研究は、通信遅延が単なる信号処理上の問題ではなく、人間を含む遠隔操作全体の性能を低下させることを示した初期の研究である。
 
-### 2.3 通信遅延と指令再構成
+Bejczyら[2]は、実ロボットの遅延映像へリアルタイムの仮想ロボットを重ねる「phantom robot」を提案し、長い遅延を含む自由空間動作で予測表示が作業性能を改善し得ることを報告した。ただし、これは操作者へ将来のロボット状態を提示する方式であり、本課題のようにロボットへ送る位置指令自体を外挿する方式とは異なる。
 
-送信時刻を\(t_k\)、遅延を\(L\)とし、\(t_k+L\leq t\)を満たす最新packetを用いる。ZOHは\(\mathbf r(t_k)\)、CVは\(\mathbf r(t_k)+(t-t_k)\dot{\mathbf r}(t_k)\)であり、外挿時間はpacket ageである。
+Zhengら[3]は、遠隔サブシステムの詳細な動的モデルを必要としない予測器フレームワークをネットワーク化閉ループ系へ適用し、一定遅延だけでなく変動遅延へ拡張した。さらに高速度無人地上車両のhuman-in-the-loop実験では、予測器を用いることで走行速度、横方向追従精度および操舵努力が改善したと報告している[4]。これらは、予測により遅延の負の影響を軽減できる実例である一方、予測器の構造と評価対象は本課題の一次Taylor外挿とは異なる。
 
-### 2.4 ロボット応答モデル
+Zhangら[5]は、操作者の意図軌道を予測し、車両をその軌道へ誘導するPTGC（Predicted Trajectory Guidance Control）を提案した。同研究では、実験条件において大きな遅延では操縦性を改善した一方、小さな遅延では効果が限定的であった。本課題では、人間の適応や認知負荷を扱わず、同じ通信・プラント条件の下でZOHとCVの数値誤差だけを比較する。この限定により、定速度外挿の有効範囲を再現可能な条件で調べる。
 
-各軸のplantは\(T\dot{\mathbf x}+\mathbf x=\mathbf u\)で表す。同じtracked model、初期状態zero、`time_constant_s` mappingをZOH/CV/referenceで共有し、詳細な運動学・接触・力覚は対象外とする。
+## 3. 遠隔位置指令系のモデル化
 
-### 2.5 評価指標
+### 3.1 対象システム
 
-追従誤差のreferenceは連続目標そのものではなく、同じplantへ直接入力した`reference_position_xy_m`である。評価window内でRMSE、trajectory amplitudeによるNRMSE、最大Euclidean誤差、CV/ZOH RMSE比、改善率を計算する。RMSE、最大誤差、mean packet ageは同じ評価sample集合を使用し、評価mask内のpacketは全件validでなければならない。全件invalidは`teleopDelay:NoValidPacketInEvaluation`、valid/invalid混在は`teleopDelay:IncompletePacketHistoryInEvaluation`、負の評価packet ageは`teleopDelay:InvalidPacketAgeInEvaluation`で拒否する。4つの無次元量\(\omega L\)、\(\omega\overline{age}\)、\(\omega T\)、\(\omega h_s\)を公開する。loggingの8要素は`Values.Time`の一致を検証してから対応付ける。
+対象は、2次元平面内の目標位置を一定周期で送信し、受信した位置指令へ一次遅れで追従するロボット手先の簡略モデルである。詳細な機構、逆運動学、関節制限、接触、力覚および人間の操作特性は捨象し、通信と指令再構成方式の差を分離する。
 
-## 3. シミュレーション条件
+本稿で用いる主な記号を表1に示す。
 
-### 3.1 仮定
+**表 1　主な記号と単位**
 
-固定遅延、packet lossなし、jitterなし、2次元直交座標、各軸独立の一次遅れ、機械学習なしを仮定する。詳細な運動学、接触、力覚、実ネットワークは対象外である。
+| 記号 | 意味 | 単位 |
+|---|---|---|
+| \(t\) | 現在時刻 | s |
+| \(t_k\) | パケット送信時刻 | s |
+| \(h_s\) | 送信周期 | s |
+| \(L\) | 片道通信遅延 | s |
+| \(a(t)\) | 使用中のパケット齢 | s |
+| \(\mathbf r(t)\) | 連続目標位置 | m |
+| \(\mathbf u(t)\) | 再構成後の指令位置 | m |
+| \(\mathbf x(t)\) | プラント出力位置 | m |
+| \(T\) | 一次遅れ時定数 | s |
+| \(A\) | 軌道振幅 | m |
+| \(\omega\) | 基本角周波数 | rad/s |
+| \(G\) | CVとZOHのRMSE比 | 無次元 |
 
-### 3.2 初期条件と評価区間
+![通信遅延と定速度予測補償のシステム構成](assets/issue9/figures/figure_01_system_architecture.png)
 
-plant初期状態はzero、packet到着前はinvalidである。基本周期は`period_s=2*pi/omega`、標準設定は10周期のうち最初の2周期を除外する。nominal start/endと、fixed grid上で実際にmetricsへ使用したsample start/end、count、logical maskを`output.evaluation`へ保存する。nominal endを覆わないsimulationや空windowは拒否する。
+**図 1　通信遅延と定速度予測補償のシステム構成**
 
-### 3.3 パラメータ
+図1に示すように、連続目標軌道は通信経路と参照経路に分岐する。通信経路では、送信側で位置と速度をサンプリングし、固定通信遅延後に利用可能となった最新パケットからZOH指令とCV指令を生成する。参照経路は通信を介さず、同じ一次遅れプラントへ連続目標位置を直接入力する。ZOH、CVおよび参照のプラントを同一モデルとすることで、プラント自身の応答遅れを共通化し、通信と指令再構成による差を評価する。
 
-<!--
-既定設定は`dt=0.01 s`、`h_s=0.05 s`、`L=0.10 s`、`T=0.20 s`、`A=1.0 m`、`omega=1.0 rad/s`、seed `0`である。
-標準10周期のnominal endを覆うようsimulation durationをfixed gridへ切り上げる。これらは研究結果ではなく再現可能な既定条件である。
--->
+### 3.2 送信パケットと利用可能条件
 
-### 3.4 数値計算法
+送信周期を \(h_s\) とし、送信時刻を
 
-solverは`ode4`、fixed stepは`dt`、実行環境はMATLAB R2025b Update 5 / Simulinkである。解析fixtureではcontinuous reference、ZOH packet reconstruction、CV packet reconstructionをsolver/logging semanticsに沿って別toleranceで検証する。
+\[
+t_k=k h_s
+\tag{1}
+\]
 
-## 4. MATLABプログラム
+とする。各パケットには、送信時刻 \(t_k\)、目標位置 \(\mathbf r(t_k)\)、解析的に求めた目標速度 \(\dot{\mathbf r}(t_k)\) を格納する。一定の片道通信遅延を \(L\) とすると、時刻 \(t\) で利用できるパケットは
 
-### 4.1 Main Program
+\[
+t_k+L\leq t
+\tag{2}
+\]
 
-`run_project`はdefault configを生成・検証し、標準評価区間を覆うgrid-aligned durationを確定し、timegrid・trajectory・model validation・simulation・evaluationを順に実行する。出力は`config`、`trajectory`、`simulation`、`evaluation`である。
+を満たすものに限られ、その中で最も新しいパケットを使用する。現在時刻と採用したパケットの送信時刻との差をパケット齢 \(a(t)\) とし、
 
-### 4.2 Sub Programs
+\[
+a(t)=t-t_k
+\tag{3}
+\]
 
-MATLAB packageはconfig、timegrid、trajectory、Simulink実行、metricsを責務分離する。Simulink builderはcommunicationと3つのplant instance、named loggingを生成する。Issue #7では保存・作図・sweepは追加しない。
+と定義する。パケット齢には通信遅延だけでなく、サンプリング後に次のパケットへ更新されるまでの経過時間も含まれる。
 
-### 4.3 検証
+### 3.3 ZOHとCVによる指令再構成
 
-metrics unitでは評価config、period、grid rounding、境界sample inclusion、空/不足window、RMSE、NRMSE、最大誤差、比率、改善率、zero denominator、packet-valid限定平均age、非有限値・shapeを検証する。model/integrationではreference direct path、3 plant共通model/argument、8要素logging、zero-delay fixture、path復元、model cleanup、hash不変、base workspace非残留を検証する。
+ZOHでは、最後に利用可能となった位置を次の更新まで保持する。
 
-## 5. 実行結果
+\[
+\mathbf u_{\mathrm{ZOH}}(t)=\mathbf r(t_k)
+\tag{4}
+\]
 
-<!-- コードから再生成した結果だけを掲載し、各図表を本文で説明する。 -->
+CVでは、同じパケットの位置と速度を用い、パケット齢だけ線形外挿する。
 
-### 5.1 代表軌道
+\[
+\mathbf u_{\mathrm{CV}}(t)
+=\mathbf r(t_k)+a(t)\dot{\mathbf r}(t_k)
+\tag{5}
+\]
 
-### 5.2 遅延・速度・軌道形状の比較
+CVは受信状態の一次Taylor外挿であり、プラントモデルと遅延モデルを用いて閉ループ系を構成するSmith予測器とは異なる。目標が一定速度で移動する区間では現在位置を正確に再現できるが、加速度や方向変化が大きいほど外挿誤差が増える。
 
-### 5.3 補償の有効範囲と悪化条件
+### 3.4 一次遅れプラント
 
-### 5.4 無次元量による整理
+ロボット手先の各軸は独立かつ同一の一次遅れ系とし、
 
-### 5.5 数値計算の収束性
+\[
+T\dot{\mathbf x}(t)+\mathbf x(t)=\mathbf u(t)
+\tag{6}
+\]
 
-## 6. 考察
+で表す。ここで、\(\mathbf x(t)\) は手先位置、\(\mathbf u(t)\) はZOH、CVまたは参照経路の入力位置、\(T\) は時定数である。3経路は同じプラントモデル、時定数および初期状態を共有する。
 
-### 6.1 結果の数理的背景
+### 3.5 目標軌道
 
-<!-- Taylor残差、加速度、位相遅れ、サンプリング。 -->
+軌道振幅を \(A\)、角周波数を \(\omega\) とする。基準となる円軌道は
 
-### 6.2 定速度予測が有効となる条件
+\[
+\mathbf r_{\mathrm{circle}}(t)
+=
+\begin{bmatrix}
+A\cos(\omega t)\\
+A\sin(\omega t)
+\end{bmatrix}
+\tag{7}
+\]
 
-### 6.3 補償が悪化する条件
+とした。円軌道は単一角周波数を持ち、速度の大きさが一定であるため、位相遅れと無次元量を解釈しやすい。
 
-### 6.4 モデル化の妥当性と限界
+方向変化と複数の周波数成分を含む軌道として、1:2リサジュー軌道を
 
-### 6.5 目的達成の判定
+\[
+\mathbf r_{\mathrm{Lissajous}}(t)
+=
+\begin{bmatrix}
+A\sin(\omega t)\\
+A\sin(2\omega t)
+\end{bmatrix}
+\tag{8}
+\]
 
-<!-- 最初の問いへ明示的に回答する。 -->
+とした。\(y\)方向に \(2\omega\) の成分を含むため、基本周波数 \(\omega\) だけでは運動の速い変化を表し切れない。
 
-## 7. 参考文献
+### 3.6 評価指標
 
-<!-- 本文で実際に引用した確認済み文献だけを記載する。 -->
-## Issue #8 実験条件と再現手順
+評価の基準は連続目標位置そのものではなく、連続目標位置を同じ一次遅れプラントへ直接入力した参照出力 \(\mathbf x_{\mathrm{ref}}(t)\) とする。方式 \(m\in\{\mathrm{ZOH},\mathrm{CV}\}\) の誤差ベクトルと大きさを
 
-本研究の標準完全要因実験は、`circle` と `lissajous_1_2` の2軌道、delay `{0, 0.10, 0.20, 0.40, 0.50} s`、omega `{0.5, 1.0, 2.0, 4.0} rad/s` の40 caseで構成する。`dt = fixed step = 0.005 s`、sample period `0.020 s`、plant time constant `0.10 s`、total cycles `10`、warm-up cycles `2`、solver `ode4`を固定する。trajectory amplitudeは既存default configを使用する。
+\[
+\mathbf e_m(t_i)=\mathbf x_m(t_i)-\mathbf x_{\mathrm{ref}}(t_i),
+\qquad
+e_m(t_i)=\lVert\mathbf e_m(t_i)\rVert_2
+\tag{9}
+\]
 
-cleanなMATLAB sessionからrepository rootで次を実行すると、manifest生成、逐次Simulink実行、reference/ZOH/CV評価、aggregate CSV、全case時系列MAT保存、CSV/MAT round-trip検証までを再生成できる。
+とし、評価区間の \(N\) サンプルからRMSEを
 
-```matlab
-result = run_standard_experiment();
+\[
+\mathrm{RMSE}_m
+=
+\sqrt{\frac{1}{N}\sum_{i=1}^{N}e_m(t_i)^2}
+\tag{10}
+\]
+
+で求める。CVとZOHの性能比を
+
+\[
+G=\frac{\mathrm{RMSE}_{\mathrm{CV}}}{\mathrm{RMSE}_{\mathrm{ZOH}}}
+\tag{11}
+\]
+
+とし、改善率を
+
+\[
+I=(1-G)\times100\ \mathrm{[\%]}
+\tag{12}
+\]
+
+とする。最大誤差、振幅 \(A\) で正規化したNRMSE、評価区間内の平均パケット齢 \(\overline a\) も保存する。
+
+数値誤差による境界付近の誤分類を避けるため、代表5条件の時間刻み収束確認から得た許容幅を \(\delta=0.007883\) とし、正式な分類規則を
+
+\[
+\begin{cases}
+G<1-\delta & : \text{改善},\\
+|G-1|\leq\delta & : \text{同等},\\
+G>1+\delta & : \text{悪化}
+\end{cases}
+\]
+
+とした。
+
+## 4. シミュレーション条件
+
+### 4.1 仮定と初期条件
+
+本課題では、固定通信遅延、パケット損失なし、遅延揺らぎなし、順序入替えなしとする。プラント初期位置は \(\mathbf x(0)=\mathbf 0\) とし、最初のパケットが到着するまでは通信出力を無効とする。過去のパケットを開始前に事前投入しない。
+
+周期軌道の起動過渡とパケット履歴不足を評価から除外するため、各条件を10周期実行し、最初の2周期をウォームアップとして除外した。シミュレーション終了時刻は10周期を覆う最小の固定時間格子点へ切り上げた。
+
+### 4.2 標準実験条件
+
+**表 2　標準シミュレーション条件**
+
+| 項目 | 設定値 |
+|---|---:|
+| 軌道 | 円軌道、1:2リサジュー軌道 |
+| 軌道振幅 \(A\) | 1.0 m |
+| 角周波数 \(\omega\) | 0.5、1.0、2.0、4.0 rad/s |
+| 通信遅延 \(L\) | 0、0.10、0.20、0.40、0.50 s |
+| 送信周期 \(h_s\) | 0.020 s |
+| プラント時定数 \(T\) | 0.10 s |
+| 固定時間刻み | 0.005 s |
+| 数値解法 | 4次Runge–Kutta法（Simulink `ode4`） |
+| 総実行時間 | 各角周波数について10周期 |
+| 評価除外区間 | 最初の2周期 |
+| 比較方式 | 遅延なし参照、ZOH、CV |
+
+2軌道、5遅延、4角周波数の完全要因計画により、合計40条件を逐次実行した。各条件では参照、ZOHおよびCVを同一Simulink実行内で計算し、条件差以外の影響を避けた。
+
+### 4.3 無次元量
+
+通信遅延と軌道の時間スケールを比較するため、名目遅延に基づく量と実際のパケット齢に基づく量を
+
+\[
+q_L=\omega L,
+\qquad
+q_a=\omega\overline a
+\tag{13}
+\]
+
+とする。さらに \(\omega T\) と \(\omega h_s\) も保存した。ただし、本実験では \(T\) と \(h_s\) を固定したため、両者の独立した影響をこの40条件だけから分離することはできない。
+
+### 4.4 数値収束の確認
+
+代表5条件について固定時間刻みを0.005 sから0.0025 sへ半減し、RMSE、最大誤差および \(G\) の変化を確認した。最大 \(|\Delta G|\) は0.0019707であり、代表5条件すべてで収束判定を満たした。この値の4倍と機械精度由来の下限を比較し、改善・同等・悪化を判定する許容幅を0.007883とした。
+
+## 5. MATLAB/Simulinkプログラム
+
+### 5.1 プログラム構成
+
+MATLABは、設定値の検証、固定時間格子、軌道生成、実験条件manifest、Simulink実行、評価指標、全条件集約、保存および図生成を担当する。Simulinkは、通信モデルと3つの一次遅れプラントの時間応答を計算する。
+
+主な公開入口は次の3つである。
+
+- `run_project`：単一条件の設定、軌道生成、Simulink実行および評価
+- `run_standard_experiment`：標準40条件の逐次実行とCSV/MAT保存
+- `run_issue9_analysis`：保存済み40条件から分類、境界抽出、代表条件選定および図生成
+
+Simulinkでは、送信側サンプリング、固定遅延、最新パケット選択、ZOH/CV再構成を通信Model Referenceにまとめ、一次遅れプラントを別のModel ReferenceとしてZOH、CV、参照の3経路で共有した。
+
+### 5.2 処理手順
+
+標準実験の処理を以下に示す。
+
+```text
+標準条件manifestを生成・検証
+for 各trajectory, delay, omega
+    固定時間格子と解析軌道を生成
+    Simulink入力を作成
+    reference / ZOH / CVを同時実行
+    評価区間を抽出
+    RMSE、最大誤差、G、改善率、平均パケット齢を計算
+    case IDと結果を保存
+end
+全40条件を集約
+CSVとMATを保存して再読込検証
+保存結果から代表条件、境界、無次元図を生成
 ```
 
-生成結果は `results/generated/<experiment_id>/<run_id>/` に保存される。
+結果ファイルには、条件、軌道、時系列、評価指標、実行環境、Git commitおよびSHA-256を記録した。これにより、図中の各条件を元の計算結果へ追跡できる。
 
-## Issue #9 解析成果（実験結果の追記）
+### 5.3 Main Program
 
-Issue #8のcomplete MATを明示入力として、標準40 caseを再実行せずに図・analysis table・境界tableを生成した。入力SHA-256は`E21B8B7486C89010A390CBF52BFF6286E6B217A5D911544D5102E39D87CDDEC8`である。
+標準40条件を実行するMain Programの主要部をプログラム1に示す。実験条件の作成と検証はSub Programへ分離し、Main Programは保存先の設定と実験実行だけを担当する。
 
-分類量は`G=RMSE_CV/RMSE_ZOH`、改善率は`(1-G)*100`とした。full modeの収束studyでは代表5 unique caseをfixed-step `0.005` sから`0.0025` sへ半減し、最大`|delta G|=0.0019707`、safety factor 4によるboundary tolerance約`0.0079`を得た。全収束行はvalidatedであり、標準40 case aggregateは置換していない。
+**プログラム 1　標準40条件を実行するMain Program**
 
-| trajectory | improvement | equivalent | degradation |
-|---|---:|---:|---:|
-| circle | 19 | 0 | 1 |
-| lissajous_1_2 | 18 | 0 | 2 |
-| total | 37 | 0 | 3 |
+```matlab
+function result = run_standard_experiment(varargin)
+projectRoot = fileparts(mfilename("fullpath"));
+sourceDirectory = fullfile(projectRoot, "src");
+pathBefore = path;
+directoryBefore = pwd;
+cleanupPath = onCleanup(@() path(pathBefore));
+cleanupDirectory = onCleanup(@() cd(directoryBefore));
+addpath(sourceDirectory);
 
-代表条件は、circleではbest improvementが`omega=0.5 rad/s, delay=0 s`、worst/nearestが`omega=4 rad/s, delay=0.5 s`、Lissajousではbestが`omega=0.5 rad/s, delay=0 s`、worstが`omega=4 rad/s, delay=0.5 s`、nearestが`omega=2 rad/s, delay=0.5 s`である。図2–3はreference/ZOH/CV trajectory、図4はLissajous誤差normと加速度event、図5–6は離散delay×omega map、図7–8は`omega*delay`と`omega*mean_packet_age`を表示する。
+parser = inputParser;
+addParameter(parser, "OutputRoot", ...
+    fullfile(projectRoot, "results", "generated"));
+addParameter(parser, "SaveResults", true, ...
+    @(value) islogical(value) && isscalar(value));
+parse(parser, varargin{:});
 
-円軌道の`q≈1.895`は文献値としては扱わず、理想正弦波で`E_CV=E_ZOH`を置いた`q=2 sin(q)`の最初の正の非零解という解析候補として比較する。sampled communication、packet-age変動、plant dynamics、fixed-step error、Lissajousの2周波数成分を無視するため、実測境界との一致を断定しない。`omega*time_constant`と`omega*sample_period`は標準designで独立効果を識別できない可能性をrank/collinearity tableへ記録し、因果寄与や統計的有意差は解釈しない。
+manifest = teleopdelay.experiment.standard_manifest();
+result = teleopdelay.experiment.run_manifest( ...
+    manifest, projectRoot, ...
+    "OutputRoot", parser.Results.OutputRoot, ...
+    "SaveResults", parser.Results.SaveResults);
+clear cleanupDirectory cleanupPath;
+end
+```
 
-入力semantic validation、`case_id` join、収束artifactのstrict validation、sidecar file manifest、保存figureのdeterminismを実装した。通常の`render-only`では40 case simulationを再実行せず、理想正弦波の`q=1.895494267...`は実測境界ではなく解析候補として扱う。詳細な数値表と図は生成artifactおよび`docs/reports/issue-9-boundary-analysis.md`を正本とする。
-収束studyの再利用は、入力40 caseから再計算した決定論的代表planと保存artifactのcase ID・role mapping・base metrics・metadataが一致する場合に限定する。これにより、過去runのsubsetや異なる代表選定をrender-onlyのboundary toleranceへ混入させない。
+### 5.4 Sub Programs
+
+軌道生成は解析式を直接実装し、位置、速度、加速度を同じ時間格子上で返す。円軌道生成の主要部をプログラム2に示す。
+
+**プログラム 2　円軌道の位置・速度・加速度生成**
+
+```matlab
+A = parameters.amplitude;
+omega = parameters.omega;
+position_m = [ ...
+    A * cos(omega * time_s), ...
+    A * sin(omega * time_s)];
+velocity_mps = [ ...
+    -A * omega * sin(omega * time_s), ...
+     A * omega * cos(omega * time_s)];
+acceleration_mps2 = [ ...
+    -A * omega^2 * cos(omega * time_s), ...
+    -A * omega^2 * sin(omega * time_s)];
+```
+
+評価指標は、参照出力との差を同じ評価maskで計算する。RMSE、最大誤差、性能比および改善率の主要部をプログラム3に示す。
+
+**プログラム 3　追従誤差と性能比の計算**
+
+```matlab
+evaluation_packet_age = simulation.packet_age_s(mask);
+reference = simulation.reference_position_xy_m;
+zoh_error = simulation.zoh_position_xy_m - reference;
+cv_error = simulation.cv_position_xy_m - reference;
+
+zoh_error_norm = sqrt(sum(zoh_error.^2, 2));
+cv_error_norm = sqrt(sum(cv_error.^2, 2));
+rmse_zoh_m = sqrt(mean(sum(zoh_error(mask,:).^2, 2)));
+rmse_cv_m = sqrt(mean(sum(cv_error(mask,:).^2, 2)));
+max_error_zoh_m = max(zoh_error_norm(mask));
+max_error_cv_m = max(cv_error_norm(mask));
+
+zero_tolerance_m = 32 * eps( ...
+    max([1; abs(rmse_zoh_m); abs(rmse_cv_m)]));
+zoh_is_zero = rmse_zoh_m <= zero_tolerance_m;
+cv_is_zero = rmse_cv_m <= zero_tolerance_m;
+if zoh_is_zero && cv_is_zero
+    performance_ratio = 1.0;
+    improvement_percent = 0.0;
+elseif zoh_is_zero
+    error("teleopDelay:UndefinedPerformanceRatio", ...
+        "performance_ratio is undefined when only the ZOH RMSE is zero.");
+else
+    performance_ratio = rmse_cv_m / rmse_zoh_m;
+    improvement_percent = (1.0 - performance_ratio) * 100.0;
+end
+mean_packet_age_s = mean(evaluation_packet_age);
+```
+
+掲載したコードは主要処理に限定した。実装では、入力shape、時刻整合、パケット有効性、零除算、非有限値および保存結果の整合性を検証し、不正な条件を黙って評価しない。
+
+## 6. 実行結果
+
+### 6.1 全40条件の分類
+
+性能比 \(G\) と数値収束から定めた許容幅0.007883を用いて分類した結果を表3に示す。
+
+**表 3　CVによる改善・同等・悪化の条件数**
+
+| 軌道 | 改善 | 同等 | 悪化 | 合計 |
+|---|---:|---:|---:|---:|
+| 円軌道 | 19 | 0 | 1 | 20 |
+| 1:2リサジュー軌道 | 18 | 0 | 2 | 20 |
+| 合計 | 37 | 0 | 3 | 40 |
+
+40条件中37条件でCVのRMSEがZOHより小さくなった。一方、悪化した3条件は高角周波数・大遅延側に集中した。円軌道では \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) の1条件、リサジュー軌道では \(\omega=4\ \mathrm{rad/s}, L=0.4,0.5\ \mathrm{s}\) の2条件で悪化した。
+
+### 6.2 代表条件の軌跡
+
+![円軌道の代表条件における追従軌跡](assets/issue9/figures/figure_02_representative_circle.png)
+
+**図 2　円軌道の代表条件における追従軌跡**
+
+円軌道の最大改善条件は \(\omega=0.5\ \mathrm{rad/s}, L=0\ \mathrm{s}\) であり、\(G=0.00330\)、改善率99.67%であった。最大悪化条件かつ境界最近傍条件は \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) であり、\(G=1.084\)、改善率は−8.43%であった。図2では、低速条件でCVが参照軌道にほぼ一致する一方、高速・大遅延条件ではCVの外挿が参照から外れることが確認できる。
+
+![1:2リサジュー軌道の代表条件における追従軌跡](assets/issue9/figures/figure_03_representative_lissajous.png)
+
+**図 3　1:2リサジュー軌道の代表条件における追従軌跡**
+
+リサジュー軌道の最大改善条件は \(\omega=0.5\ \mathrm{rad/s}, L=0\ \mathrm{s}\) であり、\(G=0.00607\)、改善率99.39%であった。境界最近傍条件は \(\omega=2\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) で \(G=0.966\)、最大悪化条件は \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) で \(G=2.066\) であった。最大悪化条件ではCVのRMSEがZOHの約2.07倍になった。
+
+**表 4　自動選定した主要条件の評価値**
+
+| 軌道 | 役割 | \(\omega\) [rad/s] | \(L\) [s] | RMSE ZOH [m] | RMSE CV [m] | \(G\) | 改善率 [%] |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 円 | 最大改善 | 0.5 | 0 | 0.004578 | 0.0000151 | 0.00330 | 99.67 |
+| 円 | 最大悪化・境界最近傍 | 4 | 0.5 | 1.580 | 1.714 | 1.084 | −8.43 |
+| リサジュー | 最大改善 | 0.5 | 0 | 0.007217 | 0.0000438 | 0.00607 | 99.39 |
+| リサジュー | 境界最近傍 | 2 | 0.5 | 1.306 | 1.261 | 0.9656 | 3.44 |
+| リサジュー | 最大悪化 | 4 | 0.5 | 1.490 | 3.079 | 2.066 | −106.61 |
+
+負の改善率は悪化を表す。例えば \(-106.61\%\) は、CVのRMSEがZOHより106.61%増加したことを示す。
+
+### 6.3 誤差時系列と目標加速度
+
+![1:2リサジュー軌道における追従誤差と目標加速度](assets/issue9/figures/figure_04_lissajous_error_timeseries.png)
+
+**図 4　1:2リサジュー軌道における追従誤差と目標加速度**
+
+図4は、最大悪化条件 \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) の追従誤差と目標加速度を示す。高加速度時刻は加速度ノルムの75パーセンタイル以上として表示した。CV誤差が周期的にZOH誤差を大きく上回る区間と高加速度時刻の時間的な対応が見られる。ただし、この図は時間的一致を示すものであり、高加速度だけが悪化の原因であることを証明するものではない。
+
+### 6.4 遅延・角周波数と性能比
+
+![円軌道における通信遅延・角周波数と性能比](assets/issue9/figures/figure_05_circle_delay_omega_map.png)
+
+**図 5　円軌道における通信遅延・角周波数と性能比**
+
+![1:2リサジュー軌道における通信遅延・角周波数と性能比](assets/issue9/figures/figure_06_lissajous_delay_omega_map.png)
+
+**図 6　1:2リサジュー軌道における通信遅延・角周波数と性能比**
+
+図5、図6では、遅延と角周波数の増加に伴って \(G\) が大きくなる傾向が見られる。円軌道は \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) で初めて悪化した。リサジュー軌道は同じ \(\omega=4\ \mathrm{rad/s}\) でも \(L=0.4\ \mathrm{s}\) から悪化し、円軌道よりCVの有効範囲が狭かった。
+
+遅延がゼロでない条件でもCVは大きな改善を示した。例えば \(\omega=2\ \mathrm{rad/s}, L=0.2\ \mathrm{s}\) では、円軌道で \(G=0.210\)、1:2リサジュー軌道で \(G=0.385\) であり、いずれもZOHよりRMSEが小さかった。
+
+改善と悪化を挟む隣接格子および \(G=1\) に最も近い隣接格子を表5に示す。条件間の補間は行っていない。同一の条件対が「改善–悪化」と「\(G=1\)最近傍」の複数の選定役割を兼ねる場合は、役割を明示するため重複して掲載した。
+
+**表 5　離散条件格子における性能境界の隣接条件**
+
+| 軌道 | 変化軸 | 固定条件 | 下側条件 | 上側条件 | 下側 \(G\) | 上側 \(G\) | 種別 |
+|---|---|---|---|---|---:|---:|---|
+| 円 | \(L\) | \(\omega=4\) | \(L=0.4\) | \(L=0.5\) | 0.851 | 1.084 | 改善–悪化 |
+| 円 | \(\omega\) | \(L=0.5\) | \(\omega=2\) | \(\omega=4\) | 0.517 | 1.084 | 改善–悪化 |
+| 円 | \(L\) | \(\omega=4\) | \(L=0.4\) | \(L=0.5\) | 0.851 | 1.084 | \(G=1\)最近傍 |
+| リサジュー | \(L\) | \(\omega=4\) | \(L=0.2\) | \(L=0.4\) | 0.767 | 1.592 | 改善–悪化 |
+| リサジュー | \(\omega\) | \(L=0.4\) | \(\omega=2\) | \(\omega=4\) | 0.766 | 1.592 | 改善–悪化 |
+| リサジュー | \(\omega\) | \(L=0.5\) | \(\omega=2\) | \(\omega=4\) | 0.966 | 2.066 | 改善–悪化 |
+| リサジュー | \(L\) | \(\omega=2\) | \(L=0.4\) | \(L=0.5\) | 0.766 | 0.966 | \(G=1\)最近傍 |
+
+### 6.5 無次元量による整理
+
+![無次元通信遅延ωLによる性能比の整理](assets/issue9/figures/figure_07_performance_vs_omega_delay.png)
+
+**図 7　無次元通信遅延 \(\omega L\) による性能比の整理**
+
+![平均パケット齢に基づく無次元量による性能比の整理](assets/issue9/figures/figure_08_performance_vs_omega_mean_packet_age.png)
+
+**図 8　平均パケット齢に基づく無次元量による性能比の整理**
+
+名目遅延が0であっても、送信周期が0.020 sであるため、評価区間の平均パケット齢は約0.0075 sであった。このためZOHにはサンプル間保持による誤差が残り、CVは \(L=0\) の全条件でもRMSEを低減した。したがって、補償時間を名目遅延 \(L\) だけでなく、実際に使用したパケットの齢で捉える必要がある。
+
+円軌道の \(\omega=4\ \mathrm{rad/s}\) では、\(L=0.4\) と0.5 sの間で \(G\) が0.851から1.084へ変化した。このとき \(q_a=\omega\overline a\) は1.630から2.030であり、後述する理想正弦波の候補値1.895を挟んだ。リサジュー軌道では2倍周波数成分を含むため、単一の \(\omega L\) または \(\omega\overline a\) だけでは全条件を同じ境界で整理できなかった。
+
+### 6.6 数値収束
+
+代表5条件で時間刻みを半減した結果、最大 \(|\Delta G|\) はリサジュー軌道の \(\omega=4\ \mathrm{rad/s}, L=0.5\ \mathrm{s}\) で0.0019707であった。円軌道の悪化条件では \(G=1.0843\) から1.0853、リサジュー軌道の最大悪化条件では2.0661から2.0681となり、改善・悪化の分類は変化しなかった。したがって、主要な分類は少なくとも確認した代表条件では時間刻みによる見かけの反転ではない。
+
+## 7. 考察
+
+### 7.1 低遅延・低角周波数でCVが有効な理由
+
+目標位置を時刻 \(t_k\) のまわりでTaylor展開すると、
+
+\[
+\mathbf r(t_k+a)
+=
+\mathbf r(t_k)
++a\dot{\mathbf r}(t_k)
++\frac{a^2}{2}\ddot{\mathbf r}(t_k)
++O(a^3)
+\tag{14}
+\]
+
+となる。ZOHは第1項だけを使用するのに対し、CVは第2項までを再現する。そのため、パケット齢が短く、加速度が小さい条件では、ZOHに残る一次の位置遅れをCVが大きく低減する。40条件中37条件で改善したことは、この範囲では一次外挿の利益が高次の予測誤差を上回ったことを示す。
+
+通信遅延 \(L=0\) でもCVが改善した理由は、パケット齢が0ではないためである。ZOHは20 ms間隔のサンプル値を保持するが、CVはその間を速度情報によって前方外挿する。この結果は、サンプル値系では「通信遅延なし」と「常に最新の連続値を利用できること」が同義ではないことを示している。
+
+ただし、最大改善率約99%となった低速・遅延0の条件では、ZOHの絶対RMSE自体が円軌道で0.00458 m、リサジュー軌道で0.00722 mと小さい。相対改善率だけをもって実用上の効果が常に大きいと解釈してはならない。
+
+### 7.2 高角周波数・大遅延で悪化する理由
+
+式(14)より、CVが無視する主要項は \(a^2\ddot{\mathbf r}/2\) である。したがって、パケット齢が長いほど誤差は概ね二次的に増加し、角周波数が高く加速度や方向変化が大きいほど定速度仮定が崩れる。CVの外挿が正しい方向へ遅れを補う範囲を超えると、過去位置を保持するZOHより大きな誤差を生じる。
+
+リサジュー軌道の最大悪化条件では、CVの最大誤差は4.194 m、ZOHは2.108 mであった。図4の高加速度時刻とCV誤差増大には時間的対応があるが、加速度、複数周波数成分、プラント応答およびサンプリングが同時に作用しているため、高加速度だけを原因として断定することはできない。
+
+### 7.3 理想正弦波の境界候補
+
+理想的な単一正弦波に対し、パケット齢を一定と仮定して \(q=\omega a\) とおく。振幅で正規化したZOHとCVの誤差振幅の二乗は、
+
+\[
+E_{\mathrm{ZOH}}^2
+=2(1-\cos q),
+\qquad
+E_{\mathrm{CV}}^2
+=(1-\cos q)^2+(q-\sin q)^2
+\tag{15}
+\]
+
+となる。両者が等しい非零の境界は
+
+\[
+q=2\sin q
+\tag{16}
+\]
+
+を満たし、最初の正の非零解は \(q\approx1.895494\) である。この値は文献から採用した境界ではなく、本課題の理想化モデルから導出した比較用候補である。
+
+円軌道で観測された隣接条件は \(q_a=1.630\) と2.030であり、候補値1.895はその間に入った。よって、今回の粗い離散格子では理想正弦波の予測と整合的である。ただし、境界を1.895と実測確定したわけではなく、正式に示せる範囲は隣接条件による1.630から2.030の間である。
+
+### 7.4 円軌道とリサジュー軌道の差
+
+円軌道は単一角周波数であり、速度の大きさが一定であるため、\(q_a\)による整理が比較的成立した。一方、1:2リサジュー軌道は \(y\)方向に \(2\omega\) 成分を持ち、速度方向と加速度が周期的に大きく変化する。同じ \(\omega=4\ \mathrm{rad/s}, L=0.4\ \mathrm{s}\) でも、円軌道は \(G=0.851\) で改善側、リサジュー軌道は \(G=1.592\) で悪化側であった。
+
+この比較から、CVの有効範囲は通信遅延と基本角周波数だけでは決まらず、軌道形状とも関係することが分かる。2倍周波数成分と大きな方向変化を含む1:2リサジュー軌道では、今回の条件範囲において円軌道より早い段階で悪化した。ただし、周波数成分、方向変化および加速度の寄与を個別に変化させていないため、各要因の寄与は分離できない。リサジュー軌道を単一の \(q=\omega a\) だけで整理するのは不十分であり、2倍周波数成分については \(2\omega a\) も考慮する必要がある。
+
+### 7.5 モデル化の限界
+
+本課題の結果には次の制約がある。
+
+1. 人間操作者、映像フィードバックおよび双方向閉ループを含まない。
+2. プラントを各軸独立の一次遅れに簡略化し、ロボットの運動学、飽和、接触および安全制約を含まない。
+3. 速度は解析式から正確に与えており、実センサの雑音や速度推定誤差を含まない。
+4. 遅延は一定で、packet loss、jitterおよび順序入替えを含まない。
+5. 軌道は円と1:2リサジューの2種類、遅延と角周波数は離散40条件に限られる。
+6. 時定数 \(T\) と送信周期 \(h_s\) を固定したため、両者の独立効果を識別できない。
+7. 理論候補 \(q\approx1.895\) は、サンプリング、パケット齢変動、一次遅れプラントおよび複数周波数成分を無視した理想化結果である。
+
+したがって、本結果をそのまま実機遠隔操作の性能境界へ一般化することはできない。実システムへ適用するには、速度推定誤差、変動遅延、パケット損失、ロボット固有の動力学および人間の適応を追加して検証する必要がある。
+
+### 7.6 目的達成の判定
+
+本課題の目的は、CVがZOHより有効となる条件と悪化する条件を明らかにすることであった。40条件中37条件でCVが改善し、高角周波数・大遅延の3条件で悪化したことから、CVは広い範囲で有効であるが常に優れるわけではないことを確認した。円軌道では改善・悪化境界が理想正弦波の無次元候補と整合した。一方、2倍周波数成分と大きな方向変化を含む1:2リサジュー軌道では、今回の条件範囲において円軌道より早い段階で悪化した。ただし、各要因の寄与は個別に分離していない。
+
+以上より、CVの有効性は遅延時間単独ではなく、受信側で使用するパケット齢と軌道の運動時間スケール、および軌道形状の組合せによって決まるという結論を得た。
+
+## 8. 結論
+
+遠隔位置指令系を、固定サンプリング、固定通信遅延、最新パケット選択、ZOH/CV指令再構成および一次遅れプラントでモデル化し、円軌道と1:2リサジュー軌道について40条件を比較した。
+
+CVは40条件中37条件でZOHよりRMSEを低減した。一方、高角周波数・大遅延では定速度仮定の誤差が増大し、円軌道の1条件とリサジュー軌道の2条件でZOHより悪化した。円軌道の境界近傍は \(\omega\overline a=1.630\) から2.030の間にあり、理想正弦波から導出した候補 \(q\approx1.895\) と整合した。2倍周波数成分と大きな方向変化を含む1:2リサジュー軌道では、今回の条件範囲において円軌道より早く悪化し、基本角周波数だけでは有効範囲を十分に整理できなかった。
+
+したがって、定速度予測補償は、パケット齢に対して目標軌道の変化が緩やかな範囲では有効であるが、パケット齢や角周波数が大きく、軌道に高周波成分が含まれる条件では、外挿誤差によって悪化し得る。本課題では、その有効範囲を離散条件格子と無次元量によって定量的に示した。
+
+## 9. 参考文献
+
+[1] T. B. Sheridan and W. R. Ferrell, “Remote Manipulative Control with Transmission Delay,” *IEEE Transactions on Human Factors in Electronics*, vol. HFE-4, no. 1, pp. 25–29, 1963, doi: 10.1109/THFE.1963.231283.
+
+[2] A. K. Bejczy, W. S. Kim, and S. C. Venema, “The Phantom Robot: Predictive Displays for Teleoperation with Time Delay,” in *Proceedings of the IEEE International Conference on Robotics and Automation*, pp. 546–551, 1990, doi: 10.1109/ROBOT.1990.126037.
+
+[3] Y. Zheng, M. J. Brudnak, P. Jayakumar, J. L. Stein, and T. Ersal, “A Predictor-Based Framework for Delay Compensation in Networked Closed-Loop Systems,” *IEEE/ASME Transactions on Mechatronics*, vol. 23, no. 5, pp. 2482–2493, 2018, doi: 10.1109/TMECH.2018.2864722.
+
+[4] Y. Zheng, M. J. Brudnak, P. Jayakumar, J. L. Stein, and T. Ersal, “Evaluation of a Predictor-Based Framework in High-Speed Teleoperated Military UGVs,” *IEEE Transactions on Human-Machine Systems*, vol. 50, no. 6, pp. 561–572, 2020, doi: 10.1109/THMS.2020.3018684.
+
+[5] Q. Zhang, Z. Xu, Y. Wang, L. Yang, X. Song, and Z. Huang, “Predicted Trajectory Guidance Control Framework of Teleoperated Ground Vehicles Compensating for Delays,” *IEEE Transactions on Vehicular Technology*, vol. 72, no. 9, pp. 11264–11274, 2023, doi: 10.1109/TVT.2023.3269517.

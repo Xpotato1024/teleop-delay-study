@@ -1,0 +1,4 @@
+model,predictor_set,rank,column_count,exact_collinearity,near_collinearity,independently_identifiable,causal_contribution_identifiable,notes
+all_dimensionless_predictors,"omega_delay, omega_mean_packet_age, omega_time_constant, omega_sample_period",4,5,1,1,0,0,"The 40-case design contains fixed time constant and sample period."
+time_constant_vs_sample_period,"omega_time_constant, omega_sample_period",2,3,1,1,0,0,"Both columns are omega multiplied by fixed constants; their independent effects cannot be separated."
+delay_vs_mean_age,"omega_delay, omega_mean_packet_age",3,3,0,0,1,0,"Mean packet age includes sampling-period effects and is compared diagnostically, not treated as identical by definition."

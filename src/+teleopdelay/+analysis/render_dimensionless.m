@@ -2,11 +2,15 @@ function entry = render_dimensionless(diagnostics, theory, metric, figureId, fig
 % render_dimensionless  Render G against delay- and age-based dimensionless axes.
 
 if metric == "omega_delay"
-    xLabel = "omega*delay";
-    metricName = "q_delay";
+    xLabel = "無次元通信遅延 ωL";
+    figureText = teleopdelay.analysis.figure_text_contract().figure_07;
+    basicCandidateLabel = "基本周波数の理論候補（実測境界ではない）";
+    doubleCandidateLabel = "2倍周波数成分の理論候補（2ωL ≈ 1.895、実測境界ではない）";
 else
-    xLabel = "omega*mean packet age";
-    metricName = "q_age";
+    figureText = teleopdelay.analysis.figure_text_contract().figure_08;
+    xLabel = figureText.x_label;
+    basicCandidateLabel = figureText.basic_candidate_legend;
+    doubleCandidateLabel = figureText.double_candidate_legend;
 end
 fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1250, 700]);
 cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
@@ -16,7 +20,8 @@ colors = struct("improvement", [0.10, 0.50, 0.20], "equivalent", [0.85, 0.50, 0.
     "degradation", [0.75, 0.10, 0.10]);
 for panel = 1:2
     trajectory = trajectoryNames(panel);
-    nexttile(layout); hold on;
+    nexttile(layout);
+    hold on;
     subset = diagnostics(diagnostics.trajectory == trajectory, :);
     if metric == "omega_delay"
         subsetX = double(subset.q_delay);
@@ -25,32 +30,55 @@ for panel = 1:2
     end
     for label = ["improvement", "equivalent", "degradation"]
         selected = subset.classification == label;
-        scatter(subsetX(selected), ...
-            subset.performance_ratio(selected), 42, colors.(char(label)), "filled", ...
-            "DisplayName", label);
+        scatter(subsetX(selected), subset.performance_ratio(selected), 42, ...
+            colors.(char(label)), "filled", "DisplayName", status_label(label));
     end
-    yline(1, "k--", "G=1", "HandleVisibility", "off");
+    yline(1, "k--", "HandleVisibility", "off");
     if trajectory == "circle"
         xline(theory.q_candidate, "Color", [0.2, 0.2, 0.2], "LineStyle", ":", ...
-            "DisplayName", "ideal q candidate");
+            "DisplayName", basicCandidateLabel);
     else
         xline(theory.q_candidate / 2, "Color", [0.45, 0.15, 0.55], "LineStyle", ":", ...
-            "DisplayName", "q2=2q candidate");
+            "DisplayName", doubleCandidateLabel);
         xline(theory.q_candidate, "Color", [0.2, 0.2, 0.2], "LineStyle", "-.", ...
-            "DisplayName", "q1 candidate");
+            "DisplayName", basicCandidateLabel);
     end
-    grid on; xlabel(xLabel); ylabel("performance ratio G"); title(trajectory, "Interpreter", "none");
-    legend("Location", "best");
+    grid on;
+    xlabel(xLabel, "Interpreter", "none");
+    ylabel("性能比 G", "Interpreter", "none");
+    if trajectory == "circle"
+        title("円軌道", "Interpreter", "none");
+    else
+        title("1:2リサジュー軌道", "Interpreter", "none");
+    end
+    legend("Location", "best", "Interpreter", "none");
 end
-superTitle = sgtitle(layout, "Dimensionless organization: " + metricName + " (theory lines are ideal candidates only)");
+superTitle = sgtitle(layout, figureText.title);
 superTitle.Color = [0.05, 0.05, 0.05];
-teleopdelay.analysis.style_figure(fig);
-caption = "G against " + xLabel + " for circle and 1:2 Lissajous. The ideal sinusoid candidate is a comparison line, not an empirical boundary.";
-entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
+annotation(fig, "textbox", [0.10, 0.925, 0.80, 0.020], ...
+    "String", "理論候補線は実測境界でも文献値でもなく、理想正弦波から導出した比較用候補である。", ...
+    "EdgeColor", "none", "HorizontalAlignment", "center", ...
+    "FontSize", 8, "Interpreter", "none");
+fontName = teleopdelay.analysis.style_figure(fig);
+metadata = struct( ...
     "trajectory", "circle|lissajous_1_2", ...
-    "case_ids", strjoin(string(diagnostics.case_id), "|"), "caption", caption, ...
-    "metric", "performance_ratio G versus " + metricName, ...
-    "axes_contract", xLabel + ", G dimensionless, horizontal G=1, trajectory panels, ideal candidate lines"), config.figure_dpi);
+    "case_ids", strjoin(string(diagnostics.case_id), "|"), ...
+    "caption", figureText.caption, "metric", figureText.metric, ...
+    "axes_contract", figureText.axes_contract, "font_name", fontName);
+entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, metadata, config.figure_dpi);
 teleopdelay.analysis.close_figure(fig);
 clear cleanup;
+end
+
+function label = status_label(value)
+switch string(value)
+    case "improvement"
+        label = "改善";
+    case "equivalent"
+        label = "同等";
+    case "degradation"
+        label = "悪化";
+    otherwise
+        error("teleopDelay:AnalysisFigureStatusInvalid", "Unknown classification: %s", value);
+end
 end

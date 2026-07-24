@@ -1,55 +1,67 @@
 function entry = render_condition_map(classification, brackets, trajectory, figureId, figuresDirectory, config)
-% render_condition_map  Render a discrete delay-by-omega G map.
+% render_condition_map  Render a discrete index-coordinate delay-by-omega map.
 
-omegas = sort(unique(classification.omega_rad_s));
-delays = sort(unique(classification.delay_s));
+layout = teleopdelay.analysis.condition_map_layout(classification, brackets, trajectory);
+textContract = teleopdelay.analysis.figure_text_contract();
+if string(trajectory) == "circle"
+    figureText = textContract.figure_05;
+else
+    figureText = textContract.figure_06;
+end
 allG = double(classification.performance_ratio);
-map = nan(numel(delays), numel(omegas));
-for rowIndex = 1:numel(delays)
-    for columnIndex = 1:numel(omegas)
-        match = classification.trajectory == trajectory & ...
-            classification.delay_s == delays(rowIndex) & classification.omega_rad_s == omegas(columnIndex);
-        map(rowIndex, columnIndex) = classification.performance_ratio(find(match, 1));
-    end
-end
-fig = figure("Visible", "off", "Color", "white", "Position", [100, 100, 1050, 750]);
+visual = teleopdelay.analysis.condition_map_visual_contract();
+fig = figure("Visible", "off", "Color", "white", ...
+    "Position", visual.figure_position);
 cleanup = onCleanup(@() teleopdelay.analysis.close_figure(fig));
-imagesc(omegas, delays, map); set(gca, "YDir", "normal"); hold on;
-colormap(fig, parula(256)); clim([min(allG), max(allG)]); colorbar;
-xlabel("omega [rad/s]"); ylabel("delay [s]");
-title(string(trajectory) + " discrete performance ratio map G=RMSE_{CV}/RMSE_{ZOH}");
-grid on; set(gca, "Layer", "top", "XTick", omegas, "YTick", delays);
-selectedBrackets = brackets(brackets.trajectory == trajectory & brackets.bracket_type ~= "nearest-G-pair", :);
-omegaSpacing = min(diff(omegas));
-delaySpacing = min(diff(delays));
-for index = 1:height(selectedBrackets)
-    lowerX = selectedBrackets.lower_omega_rad_s(index);
-    lowerY = selectedBrackets.lower_delay_s(index);
-    upperX = selectedBrackets.upper_omega_rad_s(index);
-    upperY = selectedBrackets.upper_delay_s(index);
-    if lowerX == upperX
-        markerX = [lowerX, upperX] + 0.22 * omegaSpacing;
-        markerY = [lowerY, upperY];
-    else
-        markerX = [lowerX, upperX];
-        markerY = [lowerY, upperY] + 0.22 * delaySpacing;
-    end
-    plot(markerX, markerY, "kx", "LineWidth", 1.5, "MarkerSize", 8);
+ax = axes(fig, "Position", visual.axes_position);
+imagesc(ax, layout.omega_index, layout.delay_index, layout.map);
+set(ax, "YDir", "normal", "XTick", layout.omega_index, "YTick", layout.delay_index, ...
+    "XTickLabel", compose("%.3g", layout.omegas), ...
+    "YTickLabel", compose("%.3g", layout.delays), "Layer", "top");
+hold(ax, "on");
+colormap(fig, parula(256));
+colorLimits = [min(allG), max(allG)];
+if colorLimits(1) == colorLimits(2)
+    colorLimits = colorLimits + [-1, 1] * max(1e-12, abs(colorLimits(1)) * 1e-6);
 end
-for rowIndex = 1:numel(delays)
-    for columnIndex = 1:numel(omegas)
-        text(omegas(columnIndex), delays(rowIndex), sprintf("%.3f", map(rowIndex, columnIndex)), ...
-            "HorizontalAlignment", "center", "FontSize", 10, "Color", "k");
+clim(ax, colorLimits);
+colorbarHandle = colorbar(ax);
+colorbarHandle.Units = "normalized";
+colorbarHandle.Position = visual.colorbar_position;
+colorbarHandle.Label.String = "性能比 G = RMSE_CV / RMSE_ZOH";
+colorbarHandle.Label.Interpreter = "none";
+xlabel(ax, "角周波数 ω [rad/s]", "Interpreter", "none");
+ylabel(ax, "通信遅延 L [s]", "Interpreter", "none");
+title(ax, figureText.title, "Interpreter", "none");
+xlim(ax, [0.5, numel(layout.omega_index) + 0.5]);
+ylim(ax, [0.5, numel(layout.delay_index) + 0.5]);
+grid(ax, "on");
+for rowIndex = 1:numel(layout.delay_index)
+    for columnIndex = 1:numel(layout.omega_index)
+        text(ax, layout.omega_index(columnIndex), layout.delay_index(rowIndex), ...
+            sprintf("%.3f", layout.map(rowIndex, columnIndex)), ...
+            "HorizontalAlignment", "center", "FontSize", 10, ...
+            "Color", "k", "Interpreter", "none");
     end
 end
-plot(nan, nan, "kx", "LineWidth", 1.5, "MarkerSize", 8);
-legend("G=1 adjacent bracket marks", "Location", "best");
-teleopdelay.analysis.style_figure(fig);
-caption = "Discrete 5-by-4 delay/omega grid; cell text is G and offset crosses mark adjacent G=1 brackets. No interpolated measured boundary is drawn.";
-entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, struct( ...
-    "trajectory", trajectory, "case_ids", strjoin(string(classification.case_id(classification.trajectory == trajectory)), "|"), ...
-    "caption", caption, "metric", "performance_ratio G", ...
-    "axes_contract", "omega [rad/s] versus delay [s]; discrete cells only; common G scale across trajectories"), config.figure_dpi);
+for index = 1:numel(layout.markers)
+    plot(ax, layout.markers(index).x, layout.markers(index).y, "kx", ...
+        "LineWidth", 1.5, "MarkerSize", 8, "HandleVisibility", "off");
+end
+plot(ax, nan, nan, "kx", "LineWidth", 1.5, "MarkerSize", 8, ...
+    "DisplayName", "G=1を挟む隣接条件");
+legendHandle = legend(ax, "Location", visual.legend_location, ...
+    "Orientation", visual.legend_orientation, "Interpreter", "none");
+legendHandle.Units = "normalized";
+legendHandle.Location = "none";
+legendHandle.Position = visual.legend_position;
+fontName = teleopdelay.analysis.style_figure(fig);
+metadata = struct( ...
+    "trajectory", trajectory, ...
+    "case_ids", strjoin(string(classification.case_id(classification.trajectory == trajectory)), "|"), ...
+    "caption", figureText.caption, "metric", figureText.metric, ...
+    "axes_contract", figureText.axes_contract, "font_name", fontName);
+entry = teleopdelay.analysis.save_figure(fig, figuresDirectory, figureId, metadata, config.figure_dpi);
 teleopdelay.analysis.close_figure(fig);
 clear cleanup;
 end
