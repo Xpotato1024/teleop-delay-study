@@ -45,6 +45,7 @@ jobs:
           set -euo pipefail
           cat report/latex/.final-source-part-* > /tmp/final_report.tex.gz.b64
           base64 --decode /tmp/final_report.tex.gz.b64 | gzip -d > report/latex/final_report.tex
+          sed -i 's/\\setstretch{1\.18}/\\setstretch{1.16}/' report/latex/final_report.tex
 
       - name: Compile final report with XeLaTeX
         if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
@@ -146,7 +147,7 @@ jobs:
           - encrypted: no
           - SHA-256: \`${sha}\`
 
-          リポジトリ用原稿は提出時原稿の図パスのみを追跡済みassetへ変更したもの。ローカル再ビルドと実提出PDFを200 dpiで全19ページ比較し、changed pages 0、pixel difference 0を確認した。PDFのbyte hashは生成日時等のmetadataにより提出物と異なり得る。
+          リポジトリ用原稿は、提出時原稿の内容と図表を保持し、追跡済みasset pathへ接続した上で、CI環境間の改ページ差を抑えるため行間を1.18から1.16へ正規化した再現用原稿である。実際に提出したPDFの同一性は上記の提出時SHA-256で管理する。
 
           ## 最終監査
 
