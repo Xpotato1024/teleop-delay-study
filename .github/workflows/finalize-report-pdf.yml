@@ -62,30 +62,24 @@ jobs:
           xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
           cp .generated/final_report.pdf ../final_report.pdf
 
-      - name: Report build failure
+      - name: Report compact build failure
         if: ${{ failure() && hashFiles('report/latex/.final-source-part-*') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          log=report/latex/.generated/final_report.log
+          excerpt=$(grep -nE '(^!|LaTeX Error|Package .* Error|fontspec error|not found|Emergency stop|Fatal error|Undefined control sequence)' "$log" 2>/dev/null | tail -n 30 || true)
+          if [ -z "$excerpt" ]; then
+            excerpt=$(tail -n 40 "$log" 2>/dev/null || true)
+          fi
           {
-            echo '### Final report build failure'
+            echo '### Final report build failure — compact diagnostics'
             echo
             echo '```text'
-            echo 'Font matches:'
-            fc-match 'Noto Serif' || true
-            fc-match 'Noto Sans' || true
-            fc-match 'Noto Serif CJK JP' || true
-            fc-match 'Noto Sans CJK JP' || true
-            fc-match 'Noto Sans Mono CJK JP' || true
-            echo
-            echo 'Source SHA-256:'
-            sha256sum report/latex/final_report.tex || true
-            echo
-            echo 'XeLaTeX log tail:'
-            tail -n 160 report/latex/.generated/final_report.log 2>/dev/null || true
+            printf '%s\n' "$excerpt"
             echo '```'
           } > /tmp/final-report-build-failure.md
-          gh pr comment 15 --body-file /tmp/final-report-build-failure.md
+          gh api --method PATCH repos/Xpotato1024/teleop-delay-study/issues/comments/5073370822 -f body="$(cat /tmp/final-report-build-failure.md)"
 
       - name: Validate log and PDF
         if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
