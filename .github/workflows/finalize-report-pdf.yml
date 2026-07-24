@@ -54,7 +54,11 @@ jobs:
           working_directory: report/latex
           os: debian
           latexmk_use_xelatex: true
-          extra_system_packages: fonts-noto-core fonts-noto-cjk
+          extra_system_packages: fonts-noto-core curl
+          pre_compile: |
+            curl -fsSL https://deb.debian.org/debian/pool/main/f/fonts-noto-cjk/fonts-noto-cjk_20240730+repack1-1_all.deb -o /tmp/fonts-noto-cjk.deb
+            dpkg -i /tmp/fonts-noto-cjk.deb
+            fc-cache -f
           args: -pdfxe -file-line-error -halt-on-error -interaction=nonstopmode
 
       - name: Place generated PDF
