@@ -46,28 +46,27 @@ jobs:
           cat report/latex/.final-source-part-* > /tmp/final_report.tex.gz.b64
           base64 --decode /tmp/final_report.tex.gz.b64 | gzip -d > report/latex/final_report.tex
 
-      - name: Install XeLaTeX and fonts
+      - name: Compile final report with XeLaTeX
         if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
-        run: |
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends texlive-xetex texlive-lang-chinese texlive-latex-extra fonts-noto-core fonts-noto-cjk poppler-utils
+        uses: xu-cheng/latex-action@v4
+        with:
+          root_file: final_report.tex
+          working_directory: report/latex
+          os: debian
+          latexmk_use_xelatex: true
+          extra_system_packages: fonts-noto-core fonts-noto-cjk poppler-utils
+          args: -pdfxe -file-line-error -halt-on-error -interaction=nonstopmode
 
-      - name: Build twice
-        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
-        working-directory: report/latex
-        run: |
-          set -euo pipefail
-          mkdir -p .generated
-          xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
-          xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
-          cp .generated/final_report.pdf ../final_report.pdf
+      - name: Place generated PDF
+        if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
+        run: cp report/latex/final_report.pdf report/final_report.pdf
 
       - name: Report compact build failure
         if: ${{ failure() && hashFiles('report/latex/.final-source-part-*') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          log=report/latex/.generated/final_report.log
+          log=report/latex/final_report.log
           excerpt=$(tail -n 35 "$log" 2>/dev/null || true)
           {
             echo '### Final report build failure — log tail'
@@ -82,7 +81,7 @@ jobs:
         if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
           set -euo pipefail
-          log=report/latex/.generated/final_report.log
+          log=report/latex/final_report.log
           ! grep -Eq '^!|Overfull \\[hv]box|Underfull \\[hv]box|LaTeX Warning|Package .* Warning|undefined references' "$log"
           test "$(pdfinfo report/final_report.pdf | awk '/^Pages:/ {print $2}')" = "19"
           pdfinfo report/final_report.pdf | grep -q 'Page size:.*A4'
@@ -117,7 +116,7 @@ jobs:
 
           - source: \`report/latex/final_report.tex\`
           - source SHA-256: \`${source_sha}\`
-          - build engine: XeLaTeX, 2 passes
+          - build engine: XeLaTeX via latexmk
           - build time (UTC): \`${built_at}\`
           - source commit before artifact commit: \`${GITHUB_SHA}\`
           - output: \`report/final_report.pdf\`
