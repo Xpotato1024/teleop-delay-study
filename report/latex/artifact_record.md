@@ -1,60 +1,42 @@
 # 提出用PDFのartifact record
 
-> **Status: REBUILD REQUIRED**
->
-> 表紙・組版・ビルド構造を`cover.tex`、`report_style.sty`、`submission_main.tex`へ分離したため、現在追跡されている`report/final_report.pdf`は旧ビルド成果物である。新しいビルド手順を実行し、全ページ監査とhash更新が完了するまで提出用final artifactとして扱わない。
+## 実際に提出した成果物
 
-## 直前のPDF artifact
+- submission date: 2026-07-25
+- filename: `シミュレーション工学_最終課題_三ツ井雅翔_提出版.pdf`
+- page count: 19
+- page size: A4
+- file size: 4,874,221 bytes
+- encrypted: no
+- PDF version: 1.5
+- SHA-256: `FC48B9D3F1B6BE87030F7A6D4F282DD46A20596130BFDAED3229F36A5F823AD4`
+- source SHA-256 before repository-path adaptation: `05AE27B8F9CCEBCCCA2D4C9C6A38FEA0A5B5710E1D6A5F7C7389C706F612FBC2`
 
-- final PDF path: `report/final_report.pdf`
-- final PDF filename: `final_report.pdf`
-- page count: 20
-- file size: 2,146,827 bytes
-- SHA-256: `A96393921D9F12CA3C2696204FE37A708F2B533FD8B079E70DBD72328AA1298A`
-- LaTeX engine: MiKTeX 25.4 `uplatex`（e-upTeX）2回処理 + `dvipdfmx`（MiKTeX 25.4）
-- previous build command: `& .\report\latex\build.ps1`
-- template path: `C:\Users\miyut\Desktop\Xpotato-Apps\（参考）LaTeXテンプレート\template`
-- build date/time: 2026-07-24 05:14:40 +09:00
-- source commit SHA: `05b6e7e`（旧レイアウト修正・PDF・監査記録）
+このPDFを授業の最終成果物として提出済みである。
 
-上記hashは構造分離前のPDFを識別するために残す。再ビルド後はこの節を新しいartifact情報へ置換する。
+## リポジトリ正本
 
-## 新しい生成構造
-
-- entry point: `report/latex/submission_main.tex`
-- cover: `report/latex/cover.tex`
-- style: `report/latex/report_style.sty`
-- content source: `report/latex/final_report.tex`
-- generated body: `report/latex/.generated/report_body.tex`（追跡しない）
+- source: `report/latex/final_report.tex`
 - build command: `& .\report\latex\build.ps1`
+- output: `report/final_report.pdf`
+- engine: XeLaTeX 2 passes
+- figures: `report/assets/issue9/figures/figure_01_*.pdf` ～ `figure_08_*.pdf`
 
-## 使用図ファイル
+リポジトリ用原稿は、提出時原稿の図パスのみを追跡済みassetへ変更したもの。ローカル再ビルドと実提出PDFを200 dpiで全19ページ比較し、changed pages 0、pixel difference 0を確認した。
 
-以下の既存vector PDFを直接読み込む。PNGからの再ラスタライズ、手動編集、再生成は行わない。
+## 提出前最終監査
 
-- `report/assets/issue9/figures/figure_01_system_architecture.pdf`
-- `report/assets/issue9/figures/figure_02_representative_circle.pdf`
-- `report/assets/issue9/figures/figure_03_representative_lissajous.pdf`
-- `report/assets/issue9/figures/figure_04_lissajous_error_timeseries.pdf`
-- `report/assets/issue9/figures/figure_05_circle_delay_omega_map.pdf`
-- `report/assets/issue9/figures/figure_06_lissajous_delay_omega_map.pdf`
-- `report/assets/issue9/figures/figure_07_performance_vs_omega_delay.pdf`
-- `report/assets/issue9/figures/figure_08_performance_vs_omega_mean_packet_age.pdf`
+- A4、19ページ
+- 数式番号: 式(1)～式(19)の連続性を確認
+- TODO / FIXME / placeholder / ローカル絶対パスなし
+- 未解決参照なし
+- XeLaTeX warningなし
+- overfull / underfull boxなし
+- 全フォント埋め込み
+- PDFium / Popplerの双方で全ページ描画可能
+- 文字切れ、重なり、文字化け、空白ページなし
+- 採点基準7項目を充足し、P0/P1なし
 
-## フォント情報
+## GitHub生成物
 
-- 本文・見出し: `HaranoAjiMincho-Regular.otf`、`HaranoAjiGothic-Medium.otf`
-- 本文用font map: `report/latex/upjis-haranoaji.map`
-- コード・数式: TeX標準のComputer Modern系フォント
-- 既存vector図に内包されたフォント: `NotoSansJP-Thin`、`MS-UIGothic`等
-
-## 再ビルド後の必須更新
-
-1. page count
-2. file size
-3. SHA-256
-4. build date/time
-5. source commit SHA
-6. 表紙を含む全ページの視覚監査結果
-7. 図5・6の全セル値可読性
-8. 表4・5、コード、和欧文間隔の確認
+GitHub Actionsによる生成後、この節は生成日時、commit、ページ数、サイズ、SHA-256を含む確定記録へ自動更新される。
