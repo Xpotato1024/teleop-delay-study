@@ -54,38 +54,53 @@ jobs:
           working_directory: report/latex
           os: debian
           latexmk_use_xelatex: true
-          extra_system_packages: fonts-noto-core fonts-noto-cjk poppler-utils
+          extra_system_packages: fonts-noto-core fonts-noto-cjk
           args: -pdfxe -file-line-error -halt-on-error -interaction=nonstopmode
 
       - name: Place generated PDF
         if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: cp report/latex/final_report.pdf report/final_report.pdf
 
-      - name: Report compact build failure
-        if: ${{ failure() && hashFiles('report/latex/.final-source-part-*') != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install PDF inspection tool
+        if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
-          log=report/latex/final_report.log
-          excerpt=$(tail -n 35 "$log" 2>/dev/null || true)
-          {
-            echo '### Final report build failure — log tail'
-            echo
-            echo '```text'
-            printf '%s\n' "$excerpt"
-            echo '```'
-          } > /tmp/final-report-build-failure.md
-          gh api --method PATCH repos/Xpotato1024/teleop-delay-study/issues/comments/5073370822 -f body="$(cat /tmp/final-report-build-failure.md)"
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends poppler-utils
 
       - name: Validate log and PDF
         if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
           set -euo pipefail
           log=report/latex/final_report.log
-          ! grep -Eq '^!|Overfull \\[hv]box|Underfull \\[hv]box|LaTeX Warning|Package .* Warning|undefined references' "$log"
-          test "$(pdfinfo report/final_report.pdf | awk '/^Pages:/ {print $2}')" = "19"
+          if grep -En '^!|Overfull \\[hv]box|Underfull \\[hv]box|LaTeX Warning|Package .* Warning|undefined references' "$log"; then
+            echo 'XeLaTeX reported a warning or layout/reference defect.'
+            exit 1
+          fi
+          pages=$(pdfinfo report/final_report.pdf | awk '/^Pages:/ {print $2}')
+          test "$pages" = "19"
           pdfinfo report/final_report.pdf | grep -q 'Page size:.*A4'
           pdfinfo report/final_report.pdf | grep -q '^Encrypted:.*no'
+
+      - name: Report failure diagnostics
+        if: ${{ failure() && hashFiles('report/latex/.final-source-part-*') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Final report CI failure — diagnostics'
+            echo
+            echo '```text'
+            echo 'Relevant log lines:'
+            grep -En '^!|Overfull \\[hv]box|Underfull \\[hv]box|LaTeX Warning|Package .* Warning|undefined references' report/latex/final_report.log 2>/dev/null || true
+            echo
+            echo 'PDF metadata:'
+            pdfinfo report/final_report.pdf 2>/dev/null | grep -E '^(Pages|Page size|Encrypted|File size|PDF version):' || true
+            echo
+            echo 'Log tail:'
+            tail -n 25 report/latex/final_report.log 2>/dev/null || true
+            echo '```'
+          } > /tmp/final-report-failure.md
+          gh api --method PATCH repos/Xpotato1024/teleop-delay-study/issues/comments/5073370822 -f body="$(cat /tmp/final-report-failure.md)"
 
       - name: Record artifact
         if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
