@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: finalize-report-pdf
@@ -61,8 +62,33 @@ jobs:
           xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
           cp .generated/final_report.pdf ../final_report.pdf
 
+      - name: Report build failure
+        if: ${{ failure() && hashFiles('report/latex/.final-source-part-*') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Final report build failure'
+            echo
+            echo '```text'
+            echo 'Font matches:'
+            fc-match 'Noto Serif' || true
+            fc-match 'Noto Sans' || true
+            fc-match 'Noto Serif CJK JP' || true
+            fc-match 'Noto Sans CJK JP' || true
+            fc-match 'Noto Sans Mono CJK JP' || true
+            echo
+            echo 'Source SHA-256:'
+            sha256sum report/latex/final_report.tex || true
+            echo
+            echo 'XeLaTeX log tail:'
+            tail -n 160 report/latex/.generated/final_report.log 2>/dev/null || true
+            echo '```'
+          } > /tmp/final-report-build-failure.md
+          gh pr comment 15 --body-file /tmp/final-report-build-failure.md
+
       - name: Validate log and PDF
-        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
           set -euo pipefail
           log=report/latex/.generated/final_report.log
@@ -72,7 +98,7 @@ jobs:
           pdfinfo report/final_report.pdf | grep -q '^Encrypted:.*no'
 
       - name: Record artifact
-        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -126,7 +152,7 @@ jobs:
           EOF_RECORD
 
       - name: Commit final source, PDF and record
-        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        if: ${{ success() && hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
