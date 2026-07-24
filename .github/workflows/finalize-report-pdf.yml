@@ -50,7 +50,7 @@ jobs:
         if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends texlive-xetex texlive-lang-cjk texlive-latex-extra fonts-noto-core fonts-noto-cjk poppler-utils
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends texlive-xetex texlive-lang-chinese texlive-latex-extra fonts-noto-core fonts-noto-cjk poppler-utils
 
       - name: Build twice
         if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
