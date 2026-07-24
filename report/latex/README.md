@@ -4,7 +4,7 @@
 
 2026年7月25日に授業へ提出したPDFを最終提出物とする。提出物そのものの同一性は `artifact_record.md` に記録したファイル名、サイズおよびSHA-256で管理する。
 
-リポジトリには、提出版と同じ本文、数式、図表、コードおよび参考文献を保持する再現用XeLaTeX原稿と、そのCI生成PDFを保存する。TeX環境差による改ページ変動を避けるため、リポジトリ原稿の行間は1.04へ固定している。このため、提出済みPDFとリポジトリ生成PDFは内容上対応するが、組版設定と生成metadataが異なり、byte-identicalではない。
+リポジトリには、提出版と同じ本文、数式、図表、コードおよび参考文献を保持する再現用XeLaTeX原稿と、その原稿から生成したPDFを保存する。TeX環境差による改ページ変動を避けるため、リポジトリ原稿の行間は1.04へ固定している。このため、提出済みPDFとリポジトリ生成PDFは内容上対応するが、組版設定と生成metadataが異なり、byte-identicalではない。
 
 | ファイル | 責務 |
 |---|---|
@@ -13,8 +13,9 @@
 | `artifact_record.md` | 実提出物とリポジトリ生成物の識別情報・監査記録 |
 | `../final_report.pdf` | リポジトリ原稿から生成した19ページPDF |
 | `../assets/issue9/figures/` | Issue #9で固定した8枚のvector図 |
+| `../final_report.md` | 本文作成時の参照・監査用Markdown。PDF生成の正本ではない |
 
-`cover.tex`、`report_style.sty`、`submission_main.tex`、`upjis-haranoaji.map`は旧upLaTeX経路の履歴として残すが、最終レポートの生成には使用しない。
+最終生成経路は `final_report.tex` と `build.ps1` のみである。提出直前に使用したページ差替え経路および旧upLaTeX経路は、正本の曖昧化を防ぐためリポジトリから除去した。
 
 ## 必要環境
 
@@ -48,17 +49,17 @@ sudo apt-get install -y texlive-xetex texlive-lang-japanese fonts-noto-core font
 3. 完成PDFを`report/final_report.pdf`へ配置する。
 4. ファイルサイズとSHA-256を表示する。
 
-## GitHub Actions
+## 検証契約
 
-`.github/workflows/finalize-report-pdf.yml`はTeX Live 2025と固定したNoto CJKフォントで原稿を生成し、次を検証する。
+再生成時は、少なくとも次を確認する。
 
-- XeLaTeX/latexmk build成功
-- warning、未解決参照、overfull/underfullなし
-- A4
-- 19ページ
-- 非暗号化
+- XeLaTeX 2回処理が成功する
+- error、未解決参照、warning、overfull/underfull boxがない
+- A4、19ページ、非暗号化である
+- 全ページを描画し、文字切れ、重なり、文字化け、空白ページがない
+- `artifact_record.md`のリポジトリ生成物のサイズ、SHA-256、生成時刻を更新する
 
-検証後、`report/final_report.pdf`と`artifact_record.md`を更新する。
+現在追跡しているPDFは、最終化時にTeX Live 2025のXeLaTeX/latexmkで生成し、上記の機械検証を通過したもの。成果物固定のために使用した一時的なGitHub Actions workflowは、生成完了後に除去した。
 
 ## 提出物の識別
 
