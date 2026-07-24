@@ -52,6 +52,7 @@ jobs:
         with:
           root_file: final_report.tex
           working_directory: report/latex
+          texlive_version: 2025
           os: debian
           latexmk_use_xelatex: true
           extra_system_packages: fonts-noto-core curl
@@ -135,7 +136,7 @@ jobs:
 
           - source: \`report/latex/final_report.tex\`
           - source SHA-256: \`${source_sha}\`
-          - build engine: XeLaTeX via latexmk
+          - build engine: XeLaTeX via latexmk (TeX Live 2025)
           - build time (UTC): \`${built_at}\`
           - source commit before artifact commit: \`${GITHUB_SHA}\`
           - output: \`report/final_report.pdf\`
