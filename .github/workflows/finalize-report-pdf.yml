@@ -10,17 +10,33 @@ on:
       - report/latex/build.ps1
       - report/assets/issue9/figures/**
       - .github/workflows/finalize-report-pdf.yml
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - report/latex/.final-source-part-*
+      - report/latex/final_report.tex
+      - report/latex/build.ps1
+      - report/assets/issue9/figures/**
+      - .github/workflows/finalize-report-pdf.yml
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: finalize-report-pdf
+  cancel-in-progress: true
+
 jobs:
   build-and-record:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          ref: codex/10-final-report-pdf
 
       - name: Reconstruct final source
         if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
