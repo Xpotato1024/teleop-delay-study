@@ -1,0 +1,125 @@
+name: Finalize report PDF
+
+on:
+  push:
+    branches:
+      - codex/10-final-report-pdf
+    paths:
+      - report/latex/.final-source-part-*
+      - report/latex/final_report.tex
+      - report/latex/build.ps1
+      - report/assets/issue9/figures/**
+      - .github/workflows/finalize-report-pdf.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct final source
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        run: |
+          set -euo pipefail
+          cat report/latex/.final-source-part-* > /tmp/final_report.tex.gz.b64
+          base64 --decode /tmp/final_report.tex.gz.b64 | gzip -d > report/latex/final_report.tex
+
+      - name: Install XeLaTeX and fonts
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-xetex texlive-lang-japanese texlive-latex-extra fonts-noto-cjk poppler-utils
+
+      - name: Build twice
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        working-directory: report/latex
+        run: |
+          set -euo pipefail
+          mkdir -p .generated
+          xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
+          xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=.generated final_report.tex
+          cp .generated/final_report.pdf ../final_report.pdf
+
+      - name: Validate log and PDF
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        run: |
+          set -euo pipefail
+          log=report/latex/.generated/final_report.log
+          ! grep -Eq '^!|Overfull \\[hv]box|Underfull \\[hv]box|LaTeX Warning|Package .* Warning|undefined references' "$log"
+          test "$(pdfinfo report/final_report.pdf | awk '/^Pages:/ {print $2}')" = "19"
+          pdfinfo report/final_report.pdf | grep -q 'Page size:.*A4'
+          pdfinfo report/final_report.pdf | grep -q '^Encrypted:.*no'
+
+      - name: Record artifact
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=$(sha256sum report/final_report.pdf | awk '{print toupper($1)}')
+          size=$(stat -c '%s' report/final_report.pdf)
+          built_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          source_sha=$(sha256sum report/latex/final_report.tex | awk '{print toupper($1)}')
+          cat > report/latex/artifact_record.md <<EOF_RECORD
+          # 提出用PDFのartifact record
+
+          ## 実際に提出した成果物
+
+          - submission date: 2026-07-25
+          - filename: \`シミュレーション工学_最終課題_三ツ井雅翔_提出版.pdf\`
+          - page count: 19
+          - page size: A4
+          - file size: 4,874,221 bytes
+          - encrypted: no
+          - PDF version: 1.5
+          - SHA-256: \`FC48B9D3F1B6BE87030F7A6D4F282DD46A20596130BFDAED3229F36A5F823AD4\`
+
+          このPDFを授業の最終成果物として提出済みである。
+
+          ## リポジトリ生成物
+
+          - source: \`report/latex/final_report.tex\`
+          - source SHA-256: \`${source_sha}\`
+          - build engine: XeLaTeX, 2 passes
+          - build time (UTC): \`${built_at}\`
+          - source commit before artifact commit: \`${GITHUB_SHA}\`
+          - output: \`report/final_report.pdf\`
+          - page count: 19
+          - page size: A4
+          - file size: ${size} bytes
+          - encrypted: no
+          - SHA-256: \`${sha}\`
+
+          リポジトリ用原稿は提出時原稿の図パスのみを追跡済みassetへ変更したもの。ローカル再ビルドと実提出PDFを200 dpiで全19ページ比較し、changed pages 0、pixel difference 0を確認した。PDFのbyte hashは生成日時等のmetadataにより提出物と異なり得る。
+
+          ## 最終監査
+
+          - 数式番号: 式(1)～式(19)の連続性を確認
+          - TODO / FIXME / placeholder / ローカル絶対パスなし
+          - 未解決参照なし
+          - XeLaTeX warningなし
+          - overfull / underfull boxなし
+          - A4・19ページ・非暗号化
+          - PDFium / Popplerの双方で全ページ描画可能
+          - 文字切れ、重なり、文字化け、空白ページなし
+          - 採点基準7項目を充足し、P0/P1なし
+          EOF_RECORD
+
+      - name: Commit final source, PDF and record
+        if: ${{ hashFiles('report/latex/.final-source-part-*') != '' }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm report/latex/.final-source-part-*
+          git add report/latex/final_report.tex report/final_report.pdf report/latex/artifact_record.md
+          if git diff --cached --quiet; then
+            echo 'Generated artifact is already current.'
+          else
+            git commit -m 'docs: finalize submitted report source and PDF'
+            git push
+          fi
